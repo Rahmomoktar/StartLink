@@ -1,17 +1,13 @@
 import { useState } from 'react';
-import { ArrowRight, ArrowUpRight, Menu, X, Bell, CornerRightUp } from 'lucide-react';
-import { Link, NavLink } from 'react-router-dom';
+import { ArrowRight, ArrowUpRight, Menu, X, Bell } from 'lucide-react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { errorText } from './api';
+import startlinkLogo from './assets/startlink-logo.png';
 
 export function Logo() {
   return (
     <Link className="logo" to="/" aria-label="STARTLINK home">
-      <span className="mark">
-        <CornerRightUp size={19} />
-      </span>
-      <span>
-        START<b>LINK</b>
-      </span>
+      <img src={startlinkLogo} alt="" width={679} height={454} />
     </Link>
   );
 }
@@ -30,16 +26,29 @@ export function Button({ to, children, variant = 'navy', className = '', ...prop
 export const Forward = () => <ArrowRight size={16} aria-hidden="true" />;
 export const External = () => <ArrowUpRight size={16} aria-hidden="true" />;
 export function Header({ user }) {
+  const isHome = useLocation().pathname === '/';
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
   const dashboard = user?.role === 'admin' ? '/admin' : '/' + user?.role + '/dashboard';
   return (
-    <header className="site-header">
+    <header className={'site-header' + (isHome ? ' home-header' : '')}>
       <a className="skip" href="#main">
         Skip to content
       </a>
       <div className="shell header-row">
-        <Logo />
+        {isHome ? (
+          <div className="home-brand">
+            <Logo />
+            <div className="home-wordmark" aria-hidden="true">
+              <strong>
+                START<span>LINK</span>
+              </strong>
+              <small>Where Talent Meets Opportunity</small>
+            </div>
+          </div>
+        ) : (
+          <Logo />
+        )}
         <button
           type="button"
           className="menu-toggle"

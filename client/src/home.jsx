@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { motion as Motion, useReducedMotion } from 'framer-motion';
 import {
-  ArrowUpRight,
-  Check,
-  ChevronRight,
-  Diamond,
+  ChartNoAxesColumnIncreasing,
+  Building2,
+  Layers,
+  Play,
+  Rocket,
   Search,
   Sparkles,
-  UserRound,
+  UsersRound,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { search, useData } from './api';
@@ -16,31 +17,31 @@ import { Button, External, Forward, OpportunityCard, Result, StartupCard, Title 
 
 const benefits = [
   [
-    Search,
+    Building2,
     'Discover Startups',
-    'Explore emerging companies, meet their founders, and see what they’re building.',
-    'Explore startups',
+    'Explore startups, founders, industries, and business activities.',
+    'Explore Startups',
     '/discover-startups',
   ],
   [
-    UserRound,
+    UsersRound,
     'Talent Showcase',
-    'Share your skills, education, and portfolio so startup teams can discover your work.',
-    'Build your profile',
+    'Present your skills, education, certificates, and completed projects.',
+    'Showcase Your Talent',
     '/graduate/profile/edit',
   ],
   [
-    Diamond,
+    Rocket,
     'Build With Us',
-    'Join real startup projects or show what you can do in a practical challenge.',
-    'Explore projects',
+    'Join startup projects and participate in practical challenges.',
+    'Explore Opportunities',
     '/opportunities',
   ],
   [
-    ArrowUpRight,
+    Layers,
     'Smart Matching',
-    'Find relevant teams and opportunities based on your skills and interests.',
-    'Find your match',
+    'Connect with startups and graduates based on relevant skills and interests.',
+    'See Your Matches',
     '/graduate/matches',
   ],
 ];
@@ -101,7 +102,12 @@ function Preview() {
             'Software & Technology',
             ['React.js', 'UI/UX Design', 'Web Development'],
           ],
-          ['IH', 'InnovateHub', 'Digital Solutions', ['Digital Marketing', 'Branding']],
+          [
+            'IH',
+            'InnovateHub',
+            'Digital Solutions',
+            ['Digital Marketing', 'Branding', 'Content Creation'],
+          ],
         ].map(([initial, name, industry, skills]) => (
           <div className="preview-card" key={name}>
             <div className="preview-company">
@@ -119,15 +125,6 @@ function Preview() {
             </div>
           </div>
         ))}
-        <div className="preview-bottom">
-          <div>
-            <small>Explore your potential</small>
-            <strong>Find your perfect team</strong>
-          </div>
-          <span>
-            <External />
-          </span>
-        </div>
       </div>
       <div className="preview-note">
         <small>Your next connection</small>
@@ -137,13 +134,16 @@ function Preview() {
       </div>
       <div className="preview-alert">
         <span>
-          <Check size={22} />
+          <UsersRound size={22} aria-hidden="true" />
         </span>
         <div>
-          <small>Skill matched</small>
-          <strong>New opportunity!</strong>
+          <strong>Graduates &amp; startups</strong>
+          <small>Find people to build with</small>
         </div>
       </div>
+      <span className="preview-chart" aria-hidden="true">
+        <ChartNoAxesColumnIncreasing size={30} />
+      </span>
     </Motion.div>
   );
 }
@@ -200,9 +200,7 @@ export function Home({ user }) {
               <span /> The future of startup connections
             </p>
             <h1>
-              Where Talent
-              <br className="desktop-break" /> Meets
-              <br className="desktop-break" /> <em>Opportunity.</em>
+              Where Talent Meets <em>Opportunity.</em>
             </h1>
             <p className="hero-description">
               Discover emerging startups, showcase your skills, and connect with teams building
@@ -213,67 +211,52 @@ export function Home({ user }) {
                 Find Opportunities <External />
               </Button>
               <Button variant="ghost" to="/discover-startups">
-                Explore Startups <Forward />
+                <Play size={16} aria-hidden="true" /> Explore Startups
               </Button>
             </div>
             <div className="hero-community">
-              <div className="avatars" aria-hidden="true">
-                <span>AM</span>
-                <span>FK</span>
-                <span>SA</span>
-              </div>
-              <span>Built for the next generation of innovators</span>
+              <Link to="/register/graduate">
+                <UsersRound size={20} aria-hidden="true" /> For Graduates
+              </Link>
+              <Link to="/register/startup">
+                <Rocket size={20} aria-hidden="true" /> For Startups
+              </Link>
+              <Link to="/graduate/matches">
+                <Sparkles size={20} aria-hidden="true" /> Smart Matching
+              </Link>
             </div>
           </div>
           <Preview />
         </div>
       </section>
-      <div className="audience">
-        <div className="shell audience-row">
-          <span>Built to connect</span>
-          <strong>Graduates</strong>
-          <Sparkles size={13} />
-          <strong>Startups</strong>
-          <Sparkles size={13} />
-          <strong>Innovators</strong>
-          <Sparkles size={13} />
-          <strong>Founders</strong>
-        </div>
-      </div>
-      <section className="section shell">
-        <div className="center section-heading">
-          <p className="eyebrow">What we offer</p>
-          <h2>
-            Everything You Need to <em>Connect &amp; Grow</em>
-          </h2>
-          <p>One platform connecting ambitious graduates with the startups shaping tomorrow.</p>
-        </div>
-        <div className="grid four">
-          {benefits.map(([_Icon, title, description, cta, to]) => (
-            <article className="card feature" key={title}>
-              <span className="feature-icon">
-                <_Icon size={21} />
-              </span>
-              <h3>{title}</h3>
-              <p>{description}</p>
-              <Link className="text-link" to={to}>
-                {cta} <ChevronRight size={15} />
-              </Link>
-            </article>
-          ))}
+      <section className="home-features" aria-label="What STARTLINK offers">
+        <div className="shell">
+          <div className="grid four">
+            {benefits.map(([_Icon, title, description, cta, to]) => (
+              <article className="card feature" key={title}>
+                <span className="feature-icon">
+                  <_Icon size={27} aria-hidden="true" />
+                </span>
+                <h3>{title}</h3>
+                <p>{description}</p>
+                <Link className="text-link" to={to}>
+                  {cta} <External />
+                </Link>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
-      <section className="section soft">
+      <section className="section soft home-featured">
         <div className="shell">
-          <div className="section-heading split">
+          <div className="section-heading home-featured-heading">
             <div>
-              <p className="eyebrow">Startup discovery</p>
-              <h2>Meet the Next Big Ideas</h2>
-              <p>Explore startup profiles and find your place in their journey.</p>
+              <p className="eyebrow">Featured Startups</p>
+              <h2>Meet Promising Startups</h2>
             </div>
-            <Link className="text-link" to="/discover-startups">
-              Explore all <Forward />
-            </Link>
+            <Button className="view-all-startups" variant="outline" to="/discover-startups">
+              View All Startups <External />
+            </Button>
           </div>
           <Result
             query={startups}
