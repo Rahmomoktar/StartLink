@@ -165,6 +165,7 @@ export function Overview({ user }) {
     <div className={'dashboard' + (graduate ? '' : ' startup-dashboard')}>
       <header className="dashboard-heading">
         <div>
+          {!graduate && <p className="eyebrow">Startup Workspace</p>}
           <h1>{graduate ? 'Career overview' : 'Startup Overview'}</h1>
           <p>{company?.name || user.fullName}</p>
           {!graduate && (

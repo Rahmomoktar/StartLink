@@ -8,7 +8,6 @@ import {
   LogOut,
   MessageCircle,
   Network,
-  Rocket,
   Settings,
   Sparkles,
   UserRound,
@@ -83,9 +82,7 @@ export function Workspace({ user }) {
             </strong>
           </Link>
         )}
-        <p className="eyebrow">
-          {startup && <Rocket size={28} aria-hidden="true" />} {label(user.role)} workspace
-        </p>
+        {!startup && <p className="eyebrow">{label(user.role)} workspace</p>}
         <nav aria-label="Workspace">
           {menu.map(([path, name, _Icon]) => (
             <NavLink
