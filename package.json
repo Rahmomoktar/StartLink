@@ -1,0 +1,30 @@
+{
+  "name": "startlink",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "overrides": {
+    "rollup": "$rollup"
+  },
+  "scripts": {
+    "dev": "concurrently -k \"npm run dev -w client\" \"npm run dev -w server\"",
+    "build": "npm run build -w client",
+    "test": "npm run test -w server",
+    "test:e2e": "npm run test:e2e -w client",
+    "seed": "npm run seed -w server",
+    "lint": "eslint client/src server/src server/tests",
+    "format": "prettier --write client/src server/src server/tests docs"
+  },
+  "devDependencies": {
+    "rollup": "npm:@rollup/wasm-node@^4.59.0",
+    "concurrently": "^9",
+    "eslint": "^9",
+    "prettier": "^3",
+    "globals": "^16"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "client",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "react": "^19",
+    "react-dom": "^19",
+    "react-router-dom": "^7",
+    "axios": "^1",
+    "@tanstack/react-query": "^5",
+    "react-hook-form": "^7",
+    "@hookform/resolvers": "^5",
+    "zod": "^4",
+    "lucide-react": "^0.577",
+    "socket.io-client": "^4",
+    "framer-motion": "^12",
+    "sonner": "^2"
+  },
+  "devDependencies": {
+    "vite": "^7",
+    "@vitejs/plugin-react": "^5",
+    "tailwindcss": "^4",
+    "@tailwindcss/vite": "^4",
+    "@playwright/test": "^1",
+    "@axe-core/playwright": "^4",
+    "@testing-library/react": "^16"
+  }
+}
