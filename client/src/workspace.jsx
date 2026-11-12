@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Building2,
   ClipboardList,
   House,
   Layers,
@@ -8,6 +9,7 @@ import {
   MessageCircle,
   Network,
   Rocket,
+  Settings,
   Sparkles,
   UserRound,
 } from 'lucide-react';
@@ -40,9 +42,11 @@ const menus = {
   ],
   startup: [
     ['dashboard', 'Overview', House],
+    ['profile', 'Startup Profile', Building2],
     ['opportunities', 'Projects & Challenges', Layers],
     ['applications', 'Applications', ClipboardList],
     ['matches', 'Smart Matching', Network],
+    ['settings', 'Settings', Settings],
   ],
   admin: [
     ['', 'Overview'],
@@ -85,7 +89,7 @@ export function Workspace({ user }) {
         <nav aria-label="Workspace">
           {menu.map(([path, name, _Icon]) => (
             <NavLink
-              end={!path || path === 'profile'}
+              end={!path || (graduate && path === 'profile')}
               key={path}
               to={root + (path ? '/' + path : '')}
             >

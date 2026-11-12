@@ -90,7 +90,22 @@ test('publishes, applies, reviews, matches, and exchanges messages in real time'
     await expect(startup.getByRole('heading', { name: 'Company Profile' })).toBeVisible();
     await expect(
       startup.getByRole('navigation', { name: 'Workspace' }).getByRole('link'),
-    ).toHaveText(['Overview', 'Projects & Challenges', 'Applications', 'Smart Matching']);
+    ).toHaveText([
+      'Overview',
+      'Startup Profile',
+      'Projects & Challenges',
+      'Applications',
+      'Smart Matching',
+      'Settings',
+    ]);
+    const startupMenu = startup.getByRole('navigation', { name: 'Workspace' });
+    for (const name of ['Smart Matching', 'Applications', 'Projects & Challenges', 'Overview']) {
+      await startupMenu.getByRole('link', { name, exact: true }).click();
+      await expect(startup.getByRole('button', { name: 'Messages', exact: true })).toHaveCount(1);
+      await expect(startup.getByRole('button', { name: 'Notifications', exact: true })).toHaveCount(
+        1,
+      );
+    }
     await startup.goto('/startup/profile/edit');
     await startup.getByLabel('Company name').fill('Browser Labs');
     await startup.getByLabel('Description', { exact: true }).fill('Makes browser-based tools.');

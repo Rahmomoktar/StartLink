@@ -1503,6 +1503,9 @@ pre {
 .platform-page .directory-intro .page-title {
   padding-block: 0.15rem;
 }
+.platform-page .directory-intro .page-title h1 {
+  color: #fff;
+}
 .platform-page .directory-intro .eyebrow,
 .platform-page .directory-intro em {
   color: #f0c878;

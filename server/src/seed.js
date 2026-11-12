@@ -125,8 +125,7 @@ const companies = [
   ],
 ];
 
-async function seedDemo() {
-  const hash = await password(env.SEED_DEMO_PASSWORD);
+async function seedGraduates(hash) {
   const graduates = [];
   for (const [index, [name, headline, location, education, skills, project]] of talent.entries()) {
     const user = await account(
@@ -156,7 +155,12 @@ async function seedDemo() {
       },
     );
   }
+  return graduates;
+}
 
+async function seedDemo() {
+  const hash = await password(env.SEED_DEMO_PASSWORD);
+  const graduates = await seedGraduates(hash);
   const teams = [];
   for (const [
     index,
@@ -302,10 +306,11 @@ async function seedDemo() {
 }
 
 if (!env.MONGODB_URI) throw new Error('Configure MONGODB_URI.');
+const graduatesOnly = process.argv.includes('--graduates-only');
 await mongoose.connect(env.MONGODB_URI);
 try {
   await Promise.all(Object.values(mongoose.models).map((Model) => Model.init()));
-  if (env.SEED_ADMIN_EMAIL) {
+  if (!graduatesOnly && env.SEED_ADMIN_EMAIL) {
     await account(
       env.SEED_ADMIN_EMAIL,
       'STARTLINK Administrator',
@@ -314,7 +319,14 @@ try {
     );
     console.info('Administrator account is present.');
   }
-  if (!production && env.DEMO_MODE === 'true') await seedDemo();
+  if (!production && env.DEMO_MODE === 'true') {
+    if (graduatesOnly) {
+      await seedGraduates(await password(env.SEED_DEMO_PASSWORD));
+      console.info('Development graduate profiles are present.');
+    } else {
+      await seedDemo();
+    }
+  }
 } finally {
   await mongoose.disconnect();
 }

@@ -119,7 +119,7 @@ export function Header({ user, startupInbox }) {
         {startup && (
           <div className="header-actions startup-header-actions">
             {startupInbox}
-            <details className="startup-account" key={pathname}>
+            <details className="startup-account" key={'account:' + pathname}>
               <summary aria-label={companyName + ' account'}>
                 <span className="startup-avatar">
                   {company?.logo ? <img src={company.logo} alt="" /> : companyName?.[0]}
@@ -130,12 +130,6 @@ export function Header({ user, startupInbox }) {
               <div className="startup-account-links">
                 <Link to={dashboard} onClick={close}>
                   Overview
-                </Link>
-                <Link to="/startup/profile" onClick={close}>
-                  Startup Profile
-                </Link>
-                <Link to="/startup/settings" onClick={close}>
-                  Settings
                 </Link>
               </div>
             </details>

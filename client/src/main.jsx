@@ -141,7 +141,7 @@ function App() {
       ) : (
         <Header
           user={user}
-          startupInbox={startupWorkspace ? <StartupInbox key={pathname} user={user} /> : undefined}
+          startupInbox={startupWorkspace ? <StartupInbox key={'inbox:' + pathname} user={user} /> : undefined}
         />
       )}
       <main id="main" className={pathname === '/' ? 'home-page' : 'platform-page'}>
