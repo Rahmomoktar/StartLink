@@ -54,8 +54,8 @@ api.interceptors.response.use(
     return api(config);
   },
 );
-export const request = async (path, method = 'get', data) =>
-  (await api({ url: path, method, data })).data.data;
+export const request = async (path, method = 'get', data, config) =>
+  (await api({ ...config, url: path, method, data })).data.data;
 export async function downloadPrivate(reference) {
   const response = await api.get('/files/' + reference.slice(6), { responseType: 'blob' });
   const objectUrl = URL.createObjectURL(response.data);

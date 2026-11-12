@@ -2,38 +2,48 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { search, useAction, useData } from './api';
 import { Form, Mutate } from './forms';
+import { VideoManager, VideoPlayer } from './videos';
 import { Button, date, label, Pager, Result, Title } from './ui';
 
 export function AdminOverview() {
   const query = useData('/admin/dashboard');
   return (
-    <>
-      <Title label="Administration" title="Platform Overview" />
+    <div className="dashboard admin-dashboard">
+      <header className="dashboard-heading">
+        <div>
+          <p className="eyebrow">Administration</p>
+          <h1>Platform Overview</h1>
+          <p>Monitor platform activity and manage the official introduction video.</p>
+        </div>
+      </header>
+      <VideoManager kind="promo" subject="official" />
       <Result query={query}>
         {(data) => (
           <>
-            <div className="grid three">
+            <div className="dashboard-metrics">
               {Object.entries(data.counts).map(([name, count]) => (
-                <article className="card" key={name}>
-                  <h3>{name}</h3>
-                  <strong className="stat">{count}</strong>
+                <article className="dashboard-metric admin-metric" key={name}>
+                  <span>{label(name)}</span>
+                  <strong>{count}</strong>
                 </article>
               ))}
             </div>
-            <div className="grid two">
+            <div className="dashboard-columns admin-dashboard-charts">
               {data.series.map((series, index) => (
-                <article className="card" key={index}>
-                  <h3>
-                    {
-                      [
-                        'User Registrations',
-                        'Startup Registrations',
-                        'New Opportunities',
-                        'New Connections',
-                      ][index]
-                    }
-                  </h3>
-                  <p className="meta">Last 30 days</p>
+                <article className="dashboard-panel" key={index}>
+                  <div className="dashboard-panel-heading">
+                    <h2>
+                      {
+                        [
+                          'User Registrations',
+                          'Startup Registrations',
+                          'New Opportunities',
+                          'New Connections',
+                        ][index]
+                      }
+                    </h2>
+                    <span>Last 30 days</span>
+                  </div>
                   {series.length ? (
                     <div className="chart">
                       {series.map(({ _id, total }) => (
@@ -58,7 +68,7 @@ export function AdminOverview() {
           </>
         )}
       </Result>
-    </>
+    </div>
   );
 }
 const sections = {
@@ -112,14 +122,18 @@ function AdminRow({ section, row }) {
             </Button>
             {inspect && (
               <Result query={content}>
-                {(item) => (
-                  <p className="preserve">
-                    {item.missing
-                      ? 'This record was removed.'
-                      : item.body ||
-                        [item.name || item.title, item.description].filter(Boolean).join(' · ')}
-                  </p>
-                )}
+                {(item) =>
+                  item.video ? (
+                    <VideoPlayer video={item.video} title="Reported video" />
+                  ) : (
+                    <p className="preserve">
+                      {item.missing
+                        ? 'This record was removed.'
+                        : item.body ||
+                          [item.name || item.title, item.description].filter(Boolean).join(' · ')}
+                    </p>
+                  )
+                }
               </Result>
             )}
           </>

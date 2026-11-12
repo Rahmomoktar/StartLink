@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowRight, ArrowUpRight, Menu, X, Bell } from 'lucide-react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { errorText } from './api';
 import startlinkLogo from './assets/startlink-logo.png';
 
@@ -26,29 +26,21 @@ export function Button({ to, children, variant = 'navy', className = '', ...prop
 export const Forward = () => <ArrowRight size={16} aria-hidden="true" />;
 export const External = () => <ArrowUpRight size={16} aria-hidden="true" />;
 export function Header({ user }) {
-  const isHome = useLocation().pathname === '/';
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
   const dashboard = user?.role === 'admin' ? '/admin' : '/' + user?.role + '/dashboard';
   return (
-    <header className={'site-header' + (isHome ? ' home-header' : '')}>
+    <header className="site-header">
       <a className="skip" href="#main">
         Skip to content
       </a>
       <div className="shell header-row">
-        {isHome ? (
-          <div className="home-brand">
-            <Logo />
-            <div className="home-wordmark" aria-hidden="true">
-              <strong>
-                START<span>LINK</span>
-              </strong>
-              <small>Where Talent Meets Opportunity</small>
-            </div>
-          </div>
-        ) : (
+        <div className="header-brand">
           <Logo />
-        )}
+          <div className="header-wordmark" aria-hidden="true">
+            START<span>LINK</span>
+          </div>
+        </div>
         <button
           type="button"
           className="menu-toggle"

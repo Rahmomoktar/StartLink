@@ -15,7 +15,6 @@ import {
   ManageOpportunities,
   Matches,
   OpportunityEditor,
-  Overview,
   ReviewOpportunity,
   SavedStartups,
   StartupProfile,
@@ -23,6 +22,7 @@ import {
 } from './workspace';
 import { Connections, Messages, Notifications } from './community';
 import { AdminOverview, AdminSection } from './admin';
+import { Overview } from './dashboard';
 import { Button, Footer, Header, Title } from './ui';
 import './styles.css';
 
@@ -104,7 +104,7 @@ function App() {
   return (
     <>
       <Header user={user} />
-      <main id="main">
+      <main id="main" className={pathname === '/' ? 'home-page' : 'platform-page'}>
         <ErrorBoundary key={pathname}>
           <Routes>
             <Route path="/" element={<Home user={user} />} />
@@ -153,7 +153,11 @@ function App() {
                 <Route
                   path="profile"
                   element={
-                    role === 'graduate' ? <GraduateProfile user={user} /> : <StartupProfile />
+                    role === 'graduate' ? (
+                      <GraduateProfile user={user} />
+                    ) : (
+                      <StartupProfile user={user} />
+                    )
                   }
                 />
                 <Route
@@ -162,7 +166,7 @@ function App() {
                     role === 'graduate' ? (
                       <GraduateProfile user={user} edit />
                     ) : (
-                      <StartupProfile edit />
+                      <StartupProfile user={user} edit />
                     )
                   }
                 />

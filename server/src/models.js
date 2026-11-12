@@ -15,6 +15,7 @@ export const User = model('User', {
   emailVerified: Boolean,
   status: { type: String, default: 'active' },
   avatar: String,
+  sample: Boolean,
   version: { type: Number, default: 0 },
   mutedNotifications: [String],
 });
@@ -201,10 +202,26 @@ export const StartupFollow = model(
   { graduateId: id, startupId: { type: id, ref: 'Startup' } },
   [unique({ graduateId: 1, startupId: 1 })],
 );
+export const Video = model(
+  'Video',
+  {
+    kind: String,
+    subject: String,
+    assetKey: String,
+    provider: String,
+    storageUrl: String,
+    format: String,
+    duration: Number,
+    visibility: String,
+    hidden: Boolean,
+  },
+  [unique({ kind: 1, subject: 1 })],
+);
 export const Report = model('Report', {
   reporterId: id,
   reportedEntityType: String,
   reportedEntityId: id,
+  videoVersion: String,
   reason: String,
   description: String,
   status: { type: String, default: 'pending' },

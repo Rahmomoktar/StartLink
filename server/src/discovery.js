@@ -270,7 +270,14 @@ graduateRoutes.delete('/me/projects/:id', ...role('graduate'), async (req, res) 
   send(res, null);
 });
 export const publicTalent = async () =>
-  User.find({ role: 'graduate', status: 'active', emailVerified: true }).distinct('_id');
+  User.find({
+    role: 'graduate',
+    status: 'active',
+    emailVerified: true,
+    ...(process.env.NODE_ENV !== 'production' && process.env.DEMO_MODE === 'true'
+      ? {}
+      : { sample: { $ne: true } }),
+  }).distinct('_id');
 const talentFilter = async () => ({ visibility: true, userId: { $in: await publicTalent() } });
 export function safeTalent(record) {
   const { certificates, ...data } = record;

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ProfileVideo } from './videos';
 import { motion as Motion, useReducedMotion } from 'framer-motion';
 import {
   ChartNoAxesColumnIncreasing,
@@ -229,6 +230,7 @@ export function Home({ user }) {
           <Preview />
         </div>
       </section>
+      <ProfileVideo kind="promo" subject="official" user={user} />
       <section className="home-features" aria-label="What STARTLINK offers">
         <div className="shell">
           <div className="grid four">

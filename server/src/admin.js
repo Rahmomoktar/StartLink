@@ -11,10 +11,12 @@ import {
   Startup,
   StartupMembership,
   User,
+  Video,
 } from './models.js';
 import { role, verified } from './auth.js';
 import { body, exists, notify, page, param, query, required, send } from './core.js';
 import { active } from './discovery.js';
+import { reviewVideo } from './videos.js';
 
 export const admin = Router();
 admin.use(...role('admin'), verified);
@@ -132,6 +134,7 @@ admin.patch('/opportunities/:id/status', async (req, res) => {
 const reportModels = { startup: Startup, opportunity: Opportunity, message: Message };
 admin.get('/reports/:id/content', async (req, res) => {
   const report = exists(await Report.findById(param(req)));
+  if (report.reportedEntityType === 'video') return send(res, await reviewVideo(report, req.user));
   const content = await reportModels[report.reportedEntityType]
     .findById(report.reportedEntityId)
     .select('name title description body hiddenAt status visibility')
@@ -150,10 +153,17 @@ admin.patch('/reports/:id', async (req, res) => {
       opportunity: { status: 'hidden' },
       message: { hiddenAt: new Date() },
     }[report.reportedEntityType];
-    await reportModels[report.reportedEntityType].updateOne(
-      { _id: report.reportedEntityId },
-      { $set: update },
-    );
+    if (report.reportedEntityType === 'video') {
+      await Video.updateOne(
+        { _id: report.reportedEntityId, assetKey: report.videoVersion },
+        { hidden: true },
+      );
+    } else {
+      await reportModels[report.reportedEntityType].updateOne(
+        { _id: report.reportedEntityId },
+        { $set: update },
+      );
+    }
     await audit(req, 'content.hide', report.reportedEntityType, report.reportedEntityId);
   }
   const item = exists(

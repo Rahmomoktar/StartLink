@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { request, renew, setSession, search, useAction, useData } from './api';
 import { Attachment, Form, Mutate, split } from './forms';
 import { Follow } from './discover';
+import { VideoManager } from './videos';
 import {
   Button,
   date,
@@ -106,216 +107,6 @@ export function Workspace({ user }) {
         <Outlet />
       </div>
     </div>
-  );
-}
-export function Overview({ user }) {
-  const graduate = user.role === 'graduate';
-  const root = '/' + user.role;
-  const profile = useData(graduate ? '/graduates/me' : '/startups/mine');
-  const apps = useData('/applications');
-  const activity = useData('/startups/activity', !graduate);
-  const submissions = useData('/submissions', graduate);
-  const connections = useData('/connections');
-  const messages = useData('/conversations');
-  const notifications = useData('/notifications');
-  const matches = useData(graduate ? '/matches/opportunities' : '/matches/graduates');
-  const startups = useData(graduate ? '/matches/startups' : '/opportunities/mine');
-  const percent = graduate
-    ? profile.data?.profileCompletion
-    : profile.data?.length
-      ? Math.round(
-          (100 *
-            [
-              'name',
-              'description',
-              'industry',
-              'location',
-              'website',
-              'logo',
-              'requiredSkills',
-              'founders',
-            ].filter((key) => profile.data[0][key]?.length).length) /
-            8,
-        )
-      : 0;
-  return (
-    <>
-      <Title
-        label={graduate ? 'Graduate dashboard' : 'Startup dashboard'}
-        title={'Welcome back, ' + user.fullName.split(' ')[0] + '.'}
-      >
-        Manage your profile and keep up with your collaborations.
-      </Title>
-      <div className="grid three">
-        <article className="card">
-          <h3>Profile Completion</h3>
-          <strong className="stat">{percent === undefined ? '…' : percent + '%'}</strong>
-          <Button to={root + '/profile/edit'} variant="outline">
-            Edit Profile
-          </Button>
-        </article>
-        <article className="card">
-          <h3>{graduate ? 'My Applications' : 'Applications Received'}</h3>
-          <strong className="stat">{apps.data?.total ?? '…'}</strong>
-          <Button to={root + '/applications'} variant="outline">
-            View Applications
-          </Button>
-        </article>
-        <article className="card">
-          <h3>Connections</h3>
-          <strong className="stat">
-            {connections.data
-              ? connections.data.filter((row) => row.status === 'accepted').length
-              : '…'}
-          </strong>
-          <Button to={root + '/connections'} variant="outline">
-            View Connections
-          </Button>
-        </article>
-      </div>
-      {!graduate && (
-        <Result query={activity}>
-          {(stats) => (
-            <div className="grid three">
-              {[
-                ['Active Projects', 'projects'],
-                ['Active Challenges', 'challenges'],
-                ['Completed Collaborations', 'completed'],
-              ].map(([title, key]) => (
-                <article className="card" key={key}>
-                  <h3>{title}</h3>
-                  <strong className="stat">{stats[key]}</strong>
-                </article>
-              ))}
-            </div>
-          )}
-        </Result>
-      )}
-      <div className="actions dashboard-actions">
-        {graduate ? (
-          <>
-            <Button to="/discover-startups">Explore Startups</Button>
-            <Button to="/opportunities" variant="outline">
-              Browse Projects
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button to="/startup/opportunities/new">Post a Project</Button>
-            <Button to="/startup/opportunities/new?type=challenge" variant="outline">
-              Create a Challenge
-            </Button>
-            <Button to="/startup/talent" variant="outline">
-              Find Talent
-            </Button>
-          </>
-        )}
-        <Button to={root + '/matches'} variant="outline">
-          View Matches
-        </Button>
-      </div>
-      <div className="grid two">
-        <article className="card">
-          <h3>{graduate ? 'Recommended Opportunities' : 'Recommended Graduates'}</h3>
-          <Result query={matches} empty="No recommendations yet.">
-            {(items) => (
-              <ul>
-                {items.slice(0, 4).map(({ item, score }) => (
-                  <li key={item._id}>
-                    <Link
-                      to={graduate ? '/opportunities/' + item._id : '/talent/' + item.userId?._id}
-                    >
-                      {item.title || item.userId?.fullName}
-                    </Link>{' '}
-                    {score !== null && ' · ' + score + '%'}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Result>
-        </article>
-        <article className="card">
-          <h3>{graduate ? 'Recommended Startups' : 'Projects & Challenges'}</h3>
-          <Result query={startups} empty="No records yet.">
-            {(data) => (
-              <ul>
-                {(graduate ? data.map((row) => row.item) : data.items).slice(0, 4).map((item) => (
-                  <li key={item._id}>
-                    <Link
-                      to={
-                        graduate
-                          ? '/startups/' + item.slug
-                          : '/startup/opportunities/' + item._id + '/edit'
-                      }
-                    >
-                      {item.name || item.title}
-                    </Link>{' '}
-                    {item.status && ' · ' + label(item.status)}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Result>
-        </article>
-        <article className="card">
-          <h3>Recent Messages</h3>
-          <Result query={messages} empty="No conversations yet.">
-            {(items) => (
-              <ul>
-                {items.slice(0, 4).map((item) => (
-                  <li key={item._id}>
-                    <Link to={root + '/messages?conversation=' + item._id}>
-                      {item.other.fullName}
-                    </Link>
-                    {item.unread > 0 && ' · ' + item.unread + ' unread'}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Result>
-        </article>
-        <article className="card">
-          <h3>Notifications</h3>
-          <Result query={notifications} empty="You’re all caught up.">
-            {(data) => (
-              <ul>
-                {data.items.slice(0, 4).map((item) => (
-                  <li key={item._id}>{item.title}</li>
-                ))}
-              </ul>
-            )}
-          </Result>
-          <Button variant="outline" to={root + '/notifications'}>
-            View Notifications
-          </Button>
-        </article>
-        {graduate && (
-          <>
-            <article className="card">
-              <h3>Challenge Submissions</h3>
-              <Result query={submissions}>
-                {(data) => (
-                  <ul>
-                    {data.items.slice(0, 4).map((item) => (
-                      <li key={item._id}>
-                        {item.challengeId?.title} · {label(item.reviewStatus)}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Result>
-            </article>
-            <article className="card">
-              <h3>Saved Startups</h3>
-              <p>Revisit the companies you follow.</p>
-              <Button to="/graduate/saved-startups" variant="outline">
-                View Saved Startups
-              </Button>
-            </article>
-          </>
-        )}
-      </div>
-    </>
   );
 }
 const text = (name, label, extra = {}) => ({ name, label, ...extra });
@@ -471,6 +262,7 @@ export function GraduateProfile({ user, edit }) {
                 </>
               )}
             </article>
+            {user.emailVerified && <VideoManager kind="graduate" subject={user._id} />}
             <Portfolio profile={item} />
           </div>
         )}
@@ -478,7 +270,7 @@ export function GraduateProfile({ user, edit }) {
     </>
   );
 }
-export function StartupProfile({ edit }) {
+export function StartupProfile({ edit, user }) {
   const profile = useData('/startups/mine');
   const [selected, setSelected] = useState(null);
   const action = useAction();
@@ -538,6 +330,9 @@ export function StartupProfile({ edit }) {
           </>
         )}
       </article>
+      {item && user.emailVerified && (
+        <VideoManager key={item._id} kind="startup" subject={item._id} />
+      )}
     </>
   );
 }

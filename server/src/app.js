@@ -15,6 +15,7 @@ import { matches } from './matching.js';
 import { connections, conversations, notifications, reports } from './community.js';
 import { admin } from './admin.js';
 import { files } from './files.js';
+import { videos } from './videos.js';
 import { env, fail, origin, production, send } from './core.js';
 
 export const app = express();
@@ -54,6 +55,7 @@ for (const [path, router] of Object.entries({
   reports,
   admin,
   files,
+  videos,
 }))
   api.use('/' + path, router);
 const upload = multer({

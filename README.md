@@ -43,12 +43,18 @@ MongoDB stores users, graduate profiles, startups, memberships, opportunities, a
 | `CLIENT_ORIGIN` | Exact browser origin, such as `https://app.example.com` |
 | `PORT`, `NODE_ENV` | API listener and runtime mode |
 | `SMTP_URL`, `MAIL_FROM` | Transactional email transport and verified sender |
-| `CLOUDINARY_URL` | Server-only credential for public image uploads |
+| `CLOUDINARY_URL` | Server-only credential for image uploads and authenticated video storage |
 | `COOKIE_SAME_SITE` | Defaults to `lax`. Use `none` only for cross-site HTTPS deployments |
 | `TRUST_PROXY` | Set to `1` when the API is behind one trusted reverse proxy |
 | `VITE_API_ORIGIN` | API origin at client build time for split hosting. Leave empty for same-origin routing |
 | `DEV_MAIL_LOG`, `DEMO_MODE` | Opt-in development email links and sample catalog |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_DEMO_PASSWORD` | Credentials supplied only when seeding |
+
+## Profile and promotional videos
+
+Manage the homepage video in Admin > Platform Overview. Founders and graduates manage introductions in their profile workspaces after verifying their accounts. MP4 and WebM files up to 32 MB are accepted. The duration limits are 5 minutes for the promo, 3 minutes for founders, and 2 minutes for graduates. Thumbnails are generated automatically. Startup videos follow startup visibility and verification. Graduate videos are visible to authorized startup and admin accounts when the graduate has enabled profile and video visibility.
+
+For local development without Cloudinary, set `VIDEO_DEV_FFMPEG` to the absolute path of an installed FFmpeg executable and restart the dev stack. Files are kept outside MongoDB in `.startlink-media`. Production uses `CLOUDINARY_URL`.
 
 ## Verification
 

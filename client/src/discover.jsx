@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { BriefcaseBusiness, GraduationCap, SlidersHorizontal, X } from 'lucide-react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { search, useAction, useData } from './api';
 import { Form, Mutate, ReportForm, split } from './forms';
+import { ProfileVideo } from './videos';
 import {
   Button,
   External,
@@ -66,11 +68,26 @@ const configs = {
     Card: OpportunityCard,
   },
 };
+function DirectoryIntro({ title, children }) {
+  return (
+    <div className="directory-intro dark">
+      <div className="shell">
+        <Title title={title}>{children}</Title>
+      </div>
+    </div>
+  );
+}
 export function Directory({ kind, user }) {
   const { title, description, filters, Card } = configs[kind];
+  const isStartupDirectory = kind === 'startups';
   const [params, setParams] = useSearchParams();
   const [page, setPage] = useState(1);
   const [input, setInput] = useState({});
+  const [draft, setDraft] = useState({});
+  const filterDialog = useRef(null);
+  const changeFilter = ({ target: { name, value } }) => {
+    setDraft((current) => ({ ...current, [name]: value }));
+  };
   const type = params.get('type') || '';
   const query = useData(
     search('/' + kind, { ...input, page, type: kind === 'opportunities' ? type : undefined }),
@@ -79,115 +96,208 @@ export function Directory({ kind, user }) {
   const saved = useData('/startups/saved', kind === 'startups' && user?.role === 'graduate');
   if (kind === 'graduates' && !['admin', 'startup'].includes(user?.role))
     return (
-      <section className="shell section">
-        <Title title={title}>{description}</Title>
-        <div className="card">
-          <h2>Showcase your skills</h2>
-          <p>
-            Startup accounts can browse the talent directory. Graduates control whether their
-            profile appears there.
-          </p>
-          <Button to={user ? '/graduate/profile/edit' : '/register/graduate'}>
-            {user ? 'Edit Profile' : 'Join as Graduate'}
-          </Button>{' '}
-          {!user && (
-            <Button to="/login" variant="outline">
-              Log In
+      <section className="directory">
+        <DirectoryIntro title={title}>{description}</DirectoryIntro>
+        <div className="shell talent-entry grid two">
+          <article className="card">
+            <span className="feature-icon">
+              <GraduationCap aria-hidden="true" />
+            </span>
+            <h2>Showcase your skills</h2>
+            <p>
+              Add projects, skills, and a video introduction. You control whether startup teams can
+              see your profile.
+            </p>
+            <Button to={user ? '/graduate/profile/edit' : '/register/graduate'}>
+              {user ? 'Edit My Profile' : 'Join as Graduate'}
             </Button>
-          )}
+          </article>
+          <article className="card">
+            <span className="feature-icon">
+              <BriefcaseBusiness aria-hidden="true" />
+            </span>
+            <h2>Find talent for your startup</h2>
+            <p>
+              Browse graduate profiles by skill, location, and availability with a startup account.
+            </p>
+            <Button
+              to={user ? '/discover-startups' : '/login?returnTo=%2Ftalent'}
+              variant="outline"
+            >
+              {user ? 'Discover Startups' : 'Log In as a Startup'}
+            </Button>
+          </article>
         </div>
       </section>
     );
-  return (
-    <section className="shell section">
-      <Title title={title}>{description}</Title>
-      {kind === 'opportunities' && (
-        <div className="segments" aria-label="Opportunity type">
-          {[
-            ['', 'All Opportunities'],
-            ['project', 'Join Projects'],
-            ['challenge', 'Startup Challenges'],
-          ].map(([value, text]) => (
-            <button
-              key={value}
-              aria-pressed={type === value}
-              onClick={() => {
-                setParams(value ? { type: value } : {});
-                setPage(1);
-              }}
-            >
-              {text}
-            </button>
-          ))}
-        </div>
-      )}
-      <form
-        className="filters"
-        onSubmit={(event) => {
-          event.preventDefault();
-          setPage(1);
-          setInput(Object.fromEntries(new FormData(event.currentTarget)));
-        }}
-      >
-        <label>
-          Search
-          <input name="q" placeholder="Search keywords" />
+  const opportunityTypes = kind === 'opportunities' && (
+    <div className="segments" aria-label="Opportunity type">
+      {[
+        ['', 'All Opportunities'],
+        ['project', 'Join Projects'],
+        ['challenge', 'Startup Challenges'],
+      ].map(([value, text]) => (
+        <button
+          key={value}
+          aria-pressed={type === value}
+          onClick={() => {
+            setParams(value ? { type: value } : {});
+            setPage(1);
+          }}
+        >
+          {text}
+        </button>
+      ))}
+    </div>
+  );
+  const filterForm = (
+    <form
+      className="filters"
+      onSubmit={(event) => {
+        event.preventDefault();
+        setPage(1);
+        setInput(draft);
+        filterDialog.current.close();
+      }}
+    >
+      <div className="filter-dialog-heading">
+        <h2 id="directory-filter-title">Filters</h2>
+        <Button
+          variant="outline"
+          aria-label="Close filters"
+          onClick={() => filterDialog.current.close()}
+        >
+          <X size={18} aria-hidden="true" />
+        </Button>
+      </div>
+      <label>
+        Search
+        <input
+          name="q"
+          type="search"
+          value={draft.q ?? ''}
+          onChange={changeFilter}
+          placeholder={isStartupDirectory ? 'Name or keyword' : 'Search keywords'}
+        />
+      </label>
+      {filters.map(([name, text, options]) => (
+        <label key={name}>
+          {text}
+          {options ? (
+            <select name={name} value={draft[name] ?? ''} onChange={changeFilter}>
+              {options.map(([value, option]) => (
+                <option key={value} value={value}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input name={name} value={draft[name] ?? ''} onChange={changeFilter} />
+          )}
         </label>
-        {filters.map(([name, text, options]) => (
-          <label key={name}>
-            {text}
-            {options ? (
-              <select name={name}>
-                {options.map(([value, option]) => (
-                  <option key={value} value={value}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input name={name} />
-            )}
-          </label>
-        ))}
-        <label>
-          Sort
-          <select name="sort">
-            <option value="recent">Most recent</option>
-            <option value="name">Name</option>
-          </select>
-        </label>
+      ))}
+      <label>
+        Sort
+        <select name="sort" value={draft.sort ?? 'recent'} onChange={changeFilter}>
+          <option value="recent">Most recent</option>
+          <option value="name">Name</option>
+        </select>
+      </label>
+      <div className="filter-actions">
         <Button type="submit">Apply Filters</Button>
         <Button
           variant="outline"
-          onClick={(event) => {
-            event.currentTarget.form.reset();
+          onClick={() => {
+            setDraft({});
             setInput({});
             setPage(1);
           }}
         >
           Clear
         </Button>
-      </form>
-      <Result query={query} empty="No results match these filters.">
-        {(data) => (
-          <>
-            <div className="grid three">
-              {data.items.map((item) => (
-                <Card
-                  key={item._id}
-                  item={item}
-                  action={
-                    kind === 'startups' && user?.role === 'graduate' ? (
-                      <Follow item={item} saved={saved.data} />
-                    ) : undefined
-                  }
-                />
-              ))}
-            </div>
-            <Pager data={data} page={page} onPage={setPage} />
-          </>
-        )}
-      </Result>
+      </div>
+    </form>
+  );
+  const results = (
+    <Result
+      query={query}
+      empty={
+        isStartupDirectory
+          ? 'No startups found. Try changing or clearing your filters.'
+          : 'No results match these filters.'
+      }
+    >
+      {(data) => (
+        <>
+          <div className="grid directory-grid">
+            {data.items.map((item) => (
+              <Card
+                key={item._id}
+                item={item}
+                action={
+                  kind === 'startups' && user?.role === 'graduate' ? (
+                    <Follow item={item} saved={saved.data} />
+                  ) : undefined
+                }
+              />
+            ))}
+          </div>
+          <Pager data={data} page={page} onPage={setPage} />
+        </>
+      )}
+    </Result>
+  );
+  const total = query.data?.total;
+  const noun = { startups: 'startup', graduates: 'graduate', opportunities: 'opportunity' }[kind];
+  const resultsTitle = {
+    startups: 'Startup directory',
+    graduates: 'Graduate directory',
+    opportunities: 'Browse opportunities',
+  }[kind];
+  return (
+    <section className="directory">
+      <DirectoryIntro title={title}>{description}</DirectoryIntro>
+      <div className="shell directory-layout">
+        <dialog
+          className="filter-dialog"
+          ref={filterDialog}
+          aria-labelledby="directory-filter-title"
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              filterDialog.current.close();
+            }
+          }}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) filterDialog.current.close();
+          }}
+        >
+          {filterForm}
+        </dialog>
+        <section aria-labelledby="directory-results-heading">
+          <div className="directory-results-heading">
+            <h2 id="directory-results-heading">{resultsTitle}</h2>
+            <span role="status">
+              {total !== undefined &&
+                total +
+                  ' ' +
+                  (total === 1 ? noun : kind === 'opportunities' ? 'opportunities' : noun + 's')}
+            </span>
+            <Button
+              variant="outline"
+              aria-haspopup="dialog"
+              onClick={() => {
+                setDraft(input);
+                filterDialog.current.showModal();
+              }}
+            >
+              <SlidersHorizontal size={17} aria-hidden="true" /> Filters
+            </Button>
+          </div>
+          {opportunityTypes}
+          {results}
+        </section>
+      </div>
     </section>
   );
 }
@@ -242,6 +352,7 @@ function StartupDetailContent({ item, user }) {
         </Title>
         <p>{item.description}</p>
         <Tags items={item.requiredSkills} />
+        <ProfileVideo kind="startup" subject={item._id} user={user} />
         {item.founders?.length > 0 && (
           <p>
             <strong>Founders and team</strong>
@@ -321,6 +432,7 @@ export function TalentDetail({ user }) {
             <Tags items={item.skills} />
             <p>{item.education?.join(' · ')}</p>
             <Tags items={item.interests} />
+            <ProfileVideo kind="graduate" subject={id} user={user} />
             <div className="actions">
               {item.github && (
                 <a href={item.github} target="_blank" rel="noreferrer">

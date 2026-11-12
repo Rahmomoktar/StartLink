@@ -7,5 +7,6 @@ node_modules
 .npm-cache
 .mongo-cache
 .startlink-data
+.startlink-media
 playwright-report
 test-results
