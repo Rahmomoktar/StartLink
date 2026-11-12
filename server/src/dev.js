@@ -13,6 +13,7 @@ if (!existsSync(configuration)) {
     'MONGODB_DEV_MANAGED=true',
     'MONGODB_URI=mongodb://127.0.0.1:27018/startlink',
     'DEV_MAIL_LOG=true',
+    'DEV_AUTO_VERIFY_EMAIL=true',
     'JWT_SECRET=' + randomBytes(48).toString('hex'),
     '',
   ];

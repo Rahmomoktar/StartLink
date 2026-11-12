@@ -101,15 +101,12 @@ async function mail(user, type) {
   const link = new URL(type === 'verify' ? '/verify-email' : '/reset-password', origin);
   link.searchParams.set('token', token);
   if (env.SMTP_URL && env.MAIL_FROM) {
-    await nodemailer
-      .createTransport(env.SMTP_URL)
-      .sendMail({
-        to: user.email,
-        from: env.MAIL_FROM,
-        subject:
-          type === 'verify' ? 'Verify your STARTLINK email' : 'Reset your STARTLINK password',
-        text: link.href,
-      });
+    await nodemailer.createTransport(env.SMTP_URL).sendMail({
+      to: user.email,
+      from: env.MAIL_FROM,
+      subject: type === 'verify' ? 'Verify your STARTLINK email' : 'Reset your STARTLINK password',
+      text: link.href,
+    });
   } else if (!production && env.DEV_MAIL_LOG === 'true')
     console.info('[development email]', link.href);
 }
@@ -140,6 +137,11 @@ authRoutes.use(
   ['/register', '/login', '/forgot-password', '/reset-password', '/resend-verification'],
   limit,
 );
+const localEmailVerification = () =>
+  env.NODE_ENV === 'development' &&
+  env.MONGODB_DEV_MANAGED === 'true' &&
+  env.DEV_AUTO_VERIFY_EMAIL === 'true';
+
 authRoutes.post('/register', csrf, async (req, res) => {
   const input = body(req, {
     fullName: required(100),
@@ -150,19 +152,23 @@ authRoutes.post('/register', csrf, async (req, res) => {
   });
   if (input.password !== input.confirmPassword) fail(422, 'Passwords must match.');
   const passwordHash = await argon2.hash(input.password);
+  const emailVerified = localEmailVerification();
   try {
     const user = await User.create({
       fullName: input.fullName,
       email: input.email,
       role: input.role,
       passwordHash,
-      emailVerified: false,
+      emailVerified,
     });
-    dispatch(user, 'verify');
+    if (!emailVerified) dispatch(user, 'verify');
   } catch (error) {
     if (error.code !== 11000) throw error;
   }
-  send(res, { message: 'Check your email for a verification link. You can now sign in.' }, 202);
+  const message = emailVerified
+    ? 'You can now sign in with your local test account.'
+    : 'Check your email for a verification link. You can now sign in.';
+  send(res, { message }, 202);
 });
 authRoutes.post('/login', csrf, async (req, res) => {
   const input = body(req, { email, password: z.string().min(1).max(128) });
@@ -170,6 +176,14 @@ authRoutes.post('/login', csrf, async (req, res) => {
   const dummy = await dummyPassword;
   const valid = await argon2.verify(user?.passwordHash || dummy, input.password);
   if (!user || !valid || user.status !== 'active') fail(401, 'Invalid email or password.');
+  if (
+    !user.emailVerified &&
+    ['graduate', 'startup'].includes(user.role) &&
+    localEmailVerification()
+  ) {
+    user.emailVerified = true;
+    await user.save();
+  }
   await session(res, user);
 });
 const dummyPassword = argon2.hash(random());

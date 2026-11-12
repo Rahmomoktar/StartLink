@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from 'vitest';
+import { afterAll, beforeAll, describe, expect, test, vi } from 'vitest';
 import mongoose from 'mongoose';
 import argon2 from 'argon2';
 import request from 'supertest';
@@ -62,6 +62,20 @@ afterAll(async () => {
   await mongo?.stop();
 });
 describe.sequential('STARTLINK platform', () => {
+  test('lets local test accounts sign in without a real inbox', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('MONGODB_DEV_MANAGED', 'true');
+    vi.stubEnv('DEV_AUTO_VERIFY_EMAIL', 'true');
+    try {
+      const email = 'no-inbox@example.test';
+      const result = await auth('register', { ...account('graduate'), email }).expect(202);
+      expect(result.body.data.message).toContain('local test account');
+      expect((await login(email)).user.emailVerified).toBe(true);
+      await auth('login', { email, password: 'incorrect-password' }).expect(401);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
   test('registers graduate and startup accounts and denies public administrator registration', async () => {
     for (const role of ['graduate', 'startup']) await auth('register', account(role)).expect(202);
     await auth('register', account('admin')).expect(422);

@@ -74,7 +74,15 @@ export const errorText = (error) => {
     : info?.message || 'Unable to reach STARTLINK. Please try again.';
 };
 export const useData = (path, enabled = true) =>
-  useQuery({ queryKey: [path], queryFn: () => request(path), enabled, retry: false });
+  useQuery({
+    queryKey: [path],
+    queryFn: () => request(path),
+    enabled,
+    retry: (failureCount, error) => {
+      const status = error.response?.status;
+      return failureCount < 4 && (!status || [500, 502, 503, 504].includes(status));
+    },
+  });
 export function useAction() {
   const cache = useQueryClient();
   return useMutation({

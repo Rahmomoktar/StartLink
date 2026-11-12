@@ -13,7 +13,7 @@ npm run dev
 
 Open [localhost:5173](http://localhost:5173). On first run, the dev command generates an ignored `.env` with a unique signing secret and starts MongoDB 8 on port 27018. The first run may download MongoDB if a local binary is unavailable. Development records persist in `.startlink-data`. The Vite proxy routes API and WebSocket traffic to port 4000.
 
-To use your own MongoDB, set `MONGODB_DEV_MANAGED=false` and configure `MONGODB_URI` in `.env`. For local verification, use the link printed in the API terminal when `DEV_MAIL_LOG=true`, or configure SMTP. Keep dev mail logging off in shared environments.
+The generated local configuration lets you register with an address such as `graduate@example.test` and sign in without an inbox. Set `DEV_AUTO_VERIFY_EMAIL=false` to test the verification flow using the link printed in the API terminal when `DEV_MAIL_LOG=true`. To use your own MongoDB, set `MONGODB_DEV_MANAGED=false` and configure `MONGODB_URI` in `.env`.
 
 To start the entire local stack with Docker, use the generated `.env` or copy `.env.example` to `.env` and set `JWT_SECRET` to a random string of at least 32 characters. Run `docker compose up --build`. The web container serves the SPA and proxies requests to Express. The MongoDB volume persists data across restarts.
 
@@ -48,6 +48,7 @@ MongoDB stores users, graduate profiles, startups, memberships, opportunities, a
 | `TRUST_PROXY` | Set to `1` when the API is behind one trusted reverse proxy |
 | `VITE_API_ORIGIN` | API origin at client build time for split hosting. Leave empty for same-origin routing |
 | `DEV_MAIL_LOG`, `DEMO_MODE` | Opt-in development email links and sample catalog |
+| `DEV_AUTO_VERIFY_EMAIL` | Skip inbox verification for graduate and startup accounts in managed local development |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_DEMO_PASSWORD` | Credentials supplied only when seeding |
 
 ## Profile and promotional videos

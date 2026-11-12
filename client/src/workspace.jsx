@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ClipboardList, House, Link2, MessageCircle, Sparkles, UserRound } from 'lucide-react';
 import { Link, NavLink, Outlet, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { request, renew, setSession, search, useAction, useData } from './api';
@@ -20,11 +21,11 @@ import {
 
 const menus = {
   graduate: [
-    ['dashboard', 'Overview'],
-    ['profile', 'My Profile'],
-    ['applications', 'My Applications'],
-    ['saved-startups', 'Saved Startups'],
-    ['matches', 'Smart Matching'],
+    ['dashboard', 'Overview', House],
+    ['profile', 'My Profile', UserRound],
+    ['applications', 'My Applications', ClipboardList],
+    ['matches', 'Smart Matching', Sparkles],
+    ['messages', 'Messages', MessageCircle],
   ],
   startup: [
     ['dashboard', 'Overview'],
@@ -54,23 +55,37 @@ const common = [
 ];
 export function Workspace({ user }) {
   const root = '/' + user.role;
-  const menu = user.role === 'admin' ? menus.admin : [...menus[user.role], ...common];
+  const graduate = user.role === 'graduate';
+  const menu = user.role === 'startup' ? [...menus.startup, ...common] : menus[user.role];
   const navigate = useNavigate();
   const unread = useData('/notifications', user.role !== 'admin');
   const count = unread.data?.unread || 0;
   return (
-    <div className="shell workspace">
+    <div className={graduate ? 'shell workspace graduate-workspace' : 'shell workspace'}>
       <aside className="sidebar">
+        {graduate && (
+          <Link className="workspace-brand" to="/">
+            <Link2 size={25} aria-hidden="true" />
+            <strong>
+              START<span>LINK</span>
+            </strong>
+          </Link>
+        )}
         <p className="eyebrow">{label(user.role)} workspace</p>
         <nav aria-label="Workspace">
-          {menu.map(([path, name]) => (
+          {menu.map(([path, name, _Icon]) => (
             <NavLink
               end={!path || path === 'profile'}
               key={path}
               to={root + (path ? '/' + path : '')}
             >
-              {name}
-              {path === 'notifications' && count > 0 && <span className="tag">{count}</span>}
+              {_Icon && <_Icon size={18} aria-hidden="true" />}
+              <span>{name}</span>
+              {(path === 'notifications' || (graduate && path === 'messages')) && count > 0 && (
+                <span className="tag" aria-label={count + ' unread notifications'}>
+                  {count}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -258,7 +273,7 @@ export function GraduateProfile({ user, edit }) {
                     <Attachment key={value} value={value} />
                   ))}
                   <p>{item.visibility ? 'Visible to startup accounts' : 'Private profile'}</p>
-                  <Button to="/graduate/profile/edit">Edit Profile</Button>
+                  <Button to="/graduate/profile?view=edit">Edit Profile</Button>
                 </>
               )}
             </article>

@@ -113,7 +113,18 @@ test('publishes, applies, reviews, matches, and exchanges messages in real time'
     await expect(startup.getByRole('heading', { name: 'Build a browser test' })).toBeVisible();
 
     await register(graduate, 'graduate', 'Browser Graduate', 'browser-graduate@example.test');
+    await expect(graduate.getByRole('navigation', { name: 'Main navigation' })).toHaveCount(0);
+    await expect(graduate.getByRole('contentinfo')).toHaveCount(0);
+    const sidebar = await graduate
+      .getByRole('navigation', { name: 'Workspace' })
+      .locator('..')
+      .boundingBox();
+    expect(sidebar).toMatchObject({ x: 0, y: 0 });
+    await expect(
+      graduate.getByRole('navigation', { name: 'Workspace' }).getByRole('link'),
+    ).toHaveText(['Overview', 'My Profile', 'My Applications', 'Smart Matching', 'Messages']);
     await graduate.goto('/graduate/profile/edit');
+    await expect(graduate).toHaveURL(/\/graduate\/profile\?view=edit$/);
     await graduate.getByLabel('Skills', { exact: true }).fill('JavaScript');
     await graduate.getByRole('button', { name: 'Save Changes' }).click();
     await expect(graduate.getByText('Profile updated.')).toBeVisible();

@@ -1,6 +1,14 @@
 import { Component, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Link,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useSearchParams,
+} from 'react-router-dom';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { io } from 'socket.io-client';
@@ -25,6 +33,27 @@ import { AdminOverview, AdminSection } from './admin';
 import { Overview } from './dashboard';
 import { Button, Footer, Header, Title } from './ui';
 import './styles.css';
+
+function GraduateViews({ views }) {
+  const [params] = useSearchParams();
+  const current = views.find(([key]) => key === params.get('view')) || views[0];
+  return (
+    <>
+      <nav className="graduate-views" aria-label="Page sections">
+        {views.map(([key, title]) => (
+          <Link
+            key={key}
+            to={key ? '?view=' + key : '.'}
+            aria-current={key === current[0] ? 'page' : undefined}
+          >
+            {title}
+          </Link>
+        ))}
+      </nav>
+      {current[2]}
+    </>
+  );
+}
 
 class ErrorBoundary extends Component {
   state = { error: false };
@@ -61,6 +90,7 @@ function App() {
   const user = session?.user;
   const cache = useQueryClient();
   const { pathname } = useLocation();
+  const graduateWorkspace = user?.role === 'graduate' && /^\/graduate(?:\/|$)/.test(pathname);
   useEffect(() => {
     let previous;
     setListener((next) => {
@@ -103,7 +133,13 @@ function App() {
   }, [pathname]);
   return (
     <>
-      <Header user={user} />
+      {graduateWorkspace ? (
+        <a className="skip" href="#main">
+          Skip to content
+        </a>
+      ) : (
+        <Header user={user} />
+      )}
       <main id="main" className={pathname === '/' ? 'home-page' : 'platform-page'}>
         <ErrorBoundary key={pathname}>
           <Routes>
@@ -154,7 +190,13 @@ function App() {
                   path="profile"
                   element={
                     role === 'graduate' ? (
-                      <GraduateProfile user={user} />
+                      <GraduateViews
+                        views={[
+                          ['', 'Profile', <GraduateProfile key="profile" user={user} />],
+                          ['edit', 'Edit Profile', <GraduateProfile key="edit" user={user} edit />],
+                          ['settings', 'Account Settings', <AccountSettings />],
+                        ]}
+                      />
                     ) : (
                       <StartupProfile user={user} />
                     )
@@ -164,7 +206,7 @@ function App() {
                   path="profile/edit"
                   element={
                     role === 'graduate' ? (
-                      <GraduateProfile user={user} edit />
+                      <Navigate to="/graduate/profile?view=edit" replace />
                     ) : (
                       <StartupProfile user={user} edit />
                     )
@@ -174,13 +216,72 @@ function App() {
                   path="applications"
                   element={<Applications startup={role === 'startup'} />}
                 />
-                <Route path="matches" element={<Matches user={user} />} />
-                <Route path="connections" element={<Connections user={user} />} />
-                <Route path="messages" element={<Messages user={user} />} />
-                <Route path="notifications" element={<Notifications user={user} />} />
-                <Route path="settings" element={<AccountSettings />} />
+                <Route
+                  path="matches"
+                  element={
+                    role === 'graduate' ? (
+                      <GraduateViews
+                        views={[
+                          ['', 'Recommendations', <Matches user={user} />],
+                          ['saved', 'Saved Startups', <SavedStartups />],
+                        ]}
+                      />
+                    ) : (
+                      <Matches user={user} />
+                    )
+                  }
+                />
+                <Route
+                  path="connections"
+                  element={
+                    role === 'graduate' ? (
+                      <Navigate to="/graduate/messages?view=connections" replace />
+                    ) : (
+                      <Connections user={user} />
+                    )
+                  }
+                />
+                <Route
+                  path="messages"
+                  element={
+                    role === 'graduate' ? (
+                      <GraduateViews
+                        views={[
+                          ['', 'Conversations', <Messages user={user} />],
+                          ['connections', 'Connections', <Connections user={user} />],
+                          ['notifications', 'Notifications', <Notifications user={user} />],
+                        ]}
+                      />
+                    ) : (
+                      <Messages user={user} />
+                    )
+                  }
+                />
+                <Route
+                  path="notifications"
+                  element={
+                    role === 'graduate' ? (
+                      <Navigate to="/graduate/messages?view=notifications" replace />
+                    ) : (
+                      <Notifications user={user} />
+                    )
+                  }
+                />
+                <Route
+                  path="settings"
+                  element={
+                    role === 'graduate' ? (
+                      <Navigate to="/graduate/profile?view=settings" replace />
+                    ) : (
+                      <AccountSettings />
+                    )
+                  }
+                />
                 {role === 'graduate' ? (
-                  <Route path="saved-startups" element={<SavedStartups />} />
+                  <Route
+                    path="saved-startups"
+                    element={<Navigate to="/graduate/matches?view=saved" replace />}
+                  />
                 ) : (
                   <>
                     <Route path="talent" element={<Directory kind="graduates" user={user} />} />
@@ -230,7 +331,7 @@ function App() {
           </Routes>
         </ErrorBoundary>
       </main>
-      <Footer />
+      {!graduateWorkspace && <Footer />}
       <Toaster richColors position="top-center" />
     </>
   );
