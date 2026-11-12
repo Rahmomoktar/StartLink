@@ -1,16 +1,25 @@
 import { useState } from 'react';
 import {
+  ArrowLeft,
   Building2,
+  BarChart3,
+  Bell,
+  ChevronDown,
   ClipboardList,
   House,
   Layers,
+  GraduationCap,
+  History,
   Link2,
   LogOut,
   MessageCircle,
   Network,
   Settings,
+  ShieldCheck,
   Sparkles,
   UserRound,
+  UsersRound,
+  Tags as TagsIcon,
 } from 'lucide-react';
 import { Link, NavLink, Outlet, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -48,32 +57,57 @@ const menus = {
     ['settings', 'Settings', Settings],
   ],
   admin: [
-    ['', 'Overview'],
-    ['users', 'Users'],
-    ['startups', 'Startups'],
-    ['verifications', 'Startup Verification'],
-    ['opportunities', 'Projects & Challenges'],
-    ['reports', 'Reports'],
-    ['categories', 'Categories'],
-    ['audit-logs', 'Audit Logs'],
-    ['settings', 'Settings'],
+    ['', 'Overview', House],
+    ['users', 'Users', UsersRound],
+    ['startups', 'Startups', Building2],
+    ['verifications', 'Startup Verification', ShieldCheck],
+    ['opportunities', 'Projects & Challenges', Layers],
+    ['reports', 'Reports', BarChart3],
+    ['categories', 'Categories', TagsIcon],
+    ['audit-logs', 'Audit Logs', History],
+    ['settings', 'Settings', Settings],
   ],
 };
 export function Workspace({ user }) {
   const root = '/' + user.role;
   const graduate = user.role === 'graduate';
   const startup = user.role === 'startup';
+  const admin = user.role === 'admin';
   const menu = menus[user.role];
   const navigate = useNavigate();
   const unread = useData('/notifications', graduate);
   const count = unread.data?.unread || 0;
+  const overview = useData('/admin/dashboard', admin && user.emailVerified);
+  const pending = overview.data?.pendingVerifications || 0;
+  const initials =
+    user.fullName
+      ?.trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((name) => name[0])
+      .join('')
+      .toUpperCase() || 'A';
   return (
     <div
       className={
-        'shell workspace ' + (graduate ? 'graduate-workspace' : startup ? 'startup-workspace' : '')
+        'shell workspace ' +
+        (graduate
+          ? 'graduate-workspace'
+          : 'management-workspace ' + (startup ? 'startup-workspace' : 'admin-workspace'))
       }
     >
       <aside className="sidebar">
+        {admin && (
+          <Link className="admin-workspace-brand" to="/admin">
+            <span className="admin-brand-mark">
+              <GraduationCap aria-hidden="true" />
+            </span>
+            <span>
+              <strong>START<span>LINK</span></strong>
+              <small>Admin Panel</small>
+            </span>
+          </Link>
+        )}
         {graduate && (
           <Link className="workspace-brand" to="/">
             <Link2 size={25} aria-hidden="true" />
@@ -82,7 +116,7 @@ export function Workspace({ user }) {
             </strong>
           </Link>
         )}
-        {!startup && <p className="eyebrow">{label(user.role)} workspace</p>}
+        {graduate && <p className="eyebrow">{label(user.role)} workspace</p>}
         <nav aria-label="Workspace">
           {menu.map(([path, name, _Icon]) => (
             <NavLink
@@ -97,9 +131,25 @@ export function Workspace({ user }) {
                   {count}
                 </span>
               )}
+              {admin && path === 'verifications' && pending > 0 && (
+                <span className="tag" aria-label={pending + ' pending verifications'}>
+                  {pending}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
+        {admin && (
+          <div className="admin-sidebar-account">
+            <span className="admin-avatar" aria-hidden="true">
+              {initials}
+            </span>
+            <span>
+              <strong>{user.fullName}</strong>
+              <small>{user.email}</small>
+            </span>
+          </div>
+        )}
         <Mutate
           path="/auth/logout"
           success=""
@@ -108,10 +158,42 @@ export function Workspace({ user }) {
             navigate('/login');
           }}
         >
-          {startup && <LogOut size={18} aria-hidden="true" />} Log Out
+          {(startup || admin) && <LogOut size={18} aria-hidden="true" />} Log Out
         </Mutate>
       </aside>
       <div className="workspace-main">
+        {admin && (
+          <header className="admin-topbar">
+            <Link className="admin-home-link" to="/">
+              <ArrowLeft size={17} aria-hidden="true" />
+              Back to Home
+            </Link>
+            <Link
+              className="admin-alerts"
+              to="/admin/verifications"
+              aria-label={
+                pending ? pending + ' pending startup verifications' : 'Startup verifications'
+              }
+            >
+              <Bell size={24} aria-hidden="true" />
+              {pending > 0 && <span aria-hidden="true" />}
+            </Link>
+            <details className="admin-account-menu">
+              <summary aria-label="Admin account">
+                <span className="admin-avatar" aria-hidden="true">
+                  {initials}
+                </span>
+                <ChevronDown size={16} aria-hidden="true" />
+              </summary>
+              <Link
+                to="/admin/settings"
+                onClick={(event) => event.currentTarget.parentElement.removeAttribute('open')}
+              >
+                <Settings size={16} aria-hidden="true" /> Account Settings
+              </Link>
+            </details>
+          </header>
+        )}
         {!user.emailVerified && (
           <div className="notice">
             <p>Verify your email to publish, apply, or connect.</p>
@@ -799,11 +881,11 @@ export function ReviewOpportunity() {
     </Result>
   );
 }
-export function AccountSettings() {
+export function AccountSettings({ showTitle = true }) {
   const navigate = useNavigate();
   return (
     <>
-      <Title title="Account Settings" />
+      {showTitle && <Title title="Account Settings" />}
       <article className="card">
         <h2>Change Password</h2>
         <Form

@@ -15,7 +15,7 @@ import {
   StartupMembership,
   User,
 } from './models.js';
-import { env, production } from './core.js';
+import { env, origin, production } from './core.js';
 
 async function password(value) {
   if (!value || value.length < 12)
@@ -52,44 +52,52 @@ async function account(email, fullName, role, passwordHash, sample = false) {
 
 const talent = [
   [
-    'Alex Morgan',
+    'Ahmed Hassan',
     'Frontend developer',
-    'Nairobi',
-    'BSc in Computer Science',
-    ['React', 'JavaScript', 'Accessibility'],
-    'Built a keyboard-friendly onboarding prototype for mobile users.',
-  ],
-  [
-    'Amina Yusuf',
-    'Product designer',
     'Hargeisa',
-    'BA in Digital Media',
-    ['Figma', 'Product Design', 'User Research'],
-    'Designed and tested an inventory workflow for small retailers.',
+    'BSc in Computer Science · Gollis University',
+    ['React', 'Node.js', 'MongoDB', 'UI/UX'],
+    'Full-stack developer interested in building accessible web applications for small businesses.',
   ],
   [
-    'Brian Otieno',
+    'Amina Mohamed',
+    'Software engineer',
+    'Mogadishu',
+    'BSc in Software Engineering · SIMAD University',
+    ['JavaScript', 'Express.js', 'Git', 'Teamwork'],
+    'Software engineering graduate who built an inventory workflow for small retailers.',
+  ],
+  [
+    'Mohamed Ali',
     'Data analyst',
-    'Kisumu',
-    'BSc in Statistics',
-    ['Python', 'Data Analysis', 'SQL'],
-    'Cleaned public transport survey data and built a dashboard to summarize travel patterns.',
+    'Mogadishu',
+    'BSc in Data Science · Benadir University',
+    ['Python', 'Data Analysis', 'SQL', 'Power BI'],
+    'Data analyst who turns survey data into dashboards that help teams understand local transport needs.',
   ],
   [
-    'Hodan Hassan',
-    'Backend developer',
+    'Khadra Ahmed',
+    'UI/UX designer',
+    'Garowe',
+    'BSc in Information Technology · Plasma University',
+    ['UI/UX', 'Figma', 'Canva', 'Product Design'],
+    'UI/UX designer focused on making everyday digital services easier to use.',
+  ],
+  [
+    'Abdullahi Osman',
+    'Electrical engineering graduate',
     'Hargeisa',
-    'BSc in Software Engineering',
-    ['Node.js', 'MongoDB', 'API Design'],
-    'Built a REST API for appointment scheduling with role-based access.',
+    'BSc in Electrical Engineering · East Africa University',
+    ['IoT', 'Arduino', 'Electronics', 'Project Management'],
+    'Engineering graduate who prototypes low-cost sensors for energy and water monitoring.',
   ],
   [
-    'Neema Mwangi',
-    'Sustainability researcher',
-    'Nakuru',
-    'BSc in Environmental Science',
-    ['Research', 'Field Surveys', 'Data Analysis'],
-    'Mapped collection points and interviewed vendors about food waste.',
+    'Sumaya Farah',
+    'Business development graduate',
+    'Mogadishu',
+    'BSc in Business Administration · SIMAD University',
+    ['Business Strategy', 'Marketing', 'Leadership', 'Research'],
+    'Business graduate interested in customer research, startup growth, and go-to-market strategy.',
   ],
 ];
 const companies = [
@@ -125,35 +133,41 @@ const companies = [
   ],
 ];
 
-async function seedGraduates(hash) {
+async function seedGraduates(hash, refresh = false) {
   const graduates = [];
   for (const [index, [name, headline, location, education, skills, project]] of talent.entries()) {
-    const user = await account(
-      index === 0 ? 'graduate@example.test' : 'graduate' + (index + 1) + '@example.test',
-      name,
-      'graduate',
-      hash,
-      true,
-    );
+    const email =
+      index === 0 ? 'graduate@example.test' : 'graduate' + (index + 1) + '@example.test';
+    if (refresh && (await User.exists({ email, sample: { $ne: true } }))) {
+      throw new Error('A graduate demo address belongs to a regular account.');
+    }
+    const user = await account(email, name, 'graduate', hash, true);
+    const avatar = new URL('/demo/talent-portraits.png#' + index, origin).href;
+    if (refresh)
+      await User.updateOne({ _id: user._id, sample: true }, { $set: { fullName: name, avatar } });
+    else
+      await User.updateOne(
+        { _id: user._id, sample: true, avatar: { $in: [null, ''] } },
+        { $set: { avatar } },
+      );
     graduates.push(user);
-    await insert(
-      GraduateProfile,
-      { userId: user._id },
-      {
-        headline,
-        skills,
-        location,
-        education: [education],
-        bio: project + ' Interested in collaborating with early-stage teams.',
-        interests: [headline],
-        availability: index % 2 ? 'Full time' : 'Part time',
-        workMode: index % 2 ? 'hybrid' : 'remote',
-        visibility: true,
-        portfolioProjects: [
-          { title: 'Selected project', description: project, technologies: skills },
-        ],
-      },
-    );
+    const profile = {
+      headline,
+      skills,
+      location,
+      education: [education],
+      bio: project + ' Interested in collaborating with early-stage teams.',
+      interests: [headline],
+      availability: index % 2 ? 'Full time' : 'Part time',
+      workMode: index % 2 ? 'hybrid' : 'remote',
+      visibility: true,
+      portfolioProjects: [
+        { title: 'Selected project', description: project, technologies: skills },
+      ],
+    };
+    if (refresh)
+      await GraduateProfile.updateOne({ userId: user._id }, { $set: profile }, { upsert: true });
+    else await insert(GraduateProfile, { userId: user._id }, profile);
   }
   return graduates;
 }
@@ -321,7 +335,7 @@ try {
   }
   if (!production && env.DEMO_MODE === 'true') {
     if (graduatesOnly) {
-      await seedGraduates(await password(env.SEED_DEMO_PASSWORD));
+      await seedGraduates(await password(env.SEED_DEMO_PASSWORD), true);
       console.info('Development graduate profiles are present.');
     } else {
       await seedDemo();

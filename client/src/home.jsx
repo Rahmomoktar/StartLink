@@ -1,20 +1,27 @@
 import { useState } from 'react';
-import { ProfileVideo } from './videos';
 import { motion as Motion, useReducedMotion } from 'framer-motion';
 import {
+  ArrowRight,
   ChartNoAxesColumnIncreasing,
   Building2,
+  CodeXml,
+  GraduationCap,
+  Handshake,
   Layers,
   Play,
   Rocket,
   Search,
   Sparkles,
+  UserRound,
   UsersRound,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { search, useData } from './api';
-import { Follow } from './discover';
+import { Follow, TalentShowcase } from './discover';
 import { Button, External, Forward, OpportunityCard, Result, StartupCard, Title } from './ui';
+import howHero from './assets/how-it-works-hero.png';
+import startlinkLogo from './assets/startlink-logo.png';
+import './how.css';
 
 const benefits = [
   [
@@ -186,7 +193,102 @@ function Steps() {
     </section>
   );
 }
-export const How = () => <Steps />;
+const howIcons = {
+  graduate: [UserRound, Search, Handshake],
+  startup: [Building2, Layers, Handshake],
+};
+
+export function How() {
+  const [audience, setAudience] = useState('graduate');
+  return (
+    <section className="how-page" aria-labelledby="how-title">
+      <div className="shell how-layout">
+        <div className="how-intro">
+          <p className="how-kicker">
+            <Rocket aria-hidden="true" /> How It Works
+          </p>
+          <h1 id="how-title">
+            Turn Your Skills Into <em>Real Opportunities</em>
+          </h1>
+          <p className="how-description">
+            A simple three-step process to get started, get matched, and collaborate with startups.
+          </p>
+          <div className="how-audiences" role="group" aria-label="How it works for">
+            {[
+              ['graduate', 'Graduates', GraduationCap],
+              ['startup', 'Startups', Building2],
+            ].map(([role, title, _Icon]) => (
+              <Button
+                key={role}
+                variant={role === audience ? 'navy' : 'outline'}
+                aria-pressed={role === audience}
+                aria-controls="how-process"
+                onClick={() => setAudience(role)}
+              >
+                <_Icon aria-hidden="true" /> {title}
+              </Button>
+            ))}
+          </div>
+          <Button className="how-cta" variant="gold" to={'/register/' + audience}>
+            Get Started Today <ArrowRight aria-hidden="true" />
+          </Button>
+        </div>
+        <div className="how-art" aria-hidden="true">
+          <div className="how-art-halo" />
+          <span className="how-art-accent">
+            <i />
+            <i />
+            <i />
+          </span>
+          <span className="how-art-icon">
+            <UsersRound />
+          </span>
+          <span className="how-art-icon">
+            <CodeXml />
+          </span>
+          <span className="how-art-icon">
+            <ChartNoAxesColumnIncreasing />
+          </span>
+          <span className="how-art-icon">
+            <Rocket />
+          </span>
+          <img
+            className="how-photo"
+            src={howHero}
+            width="1536"
+            height="1024"
+            alt=""
+            fetchPriority="high"
+          />
+          <span className="how-laptop-logo">
+            <img src={startlinkLogo} alt="" />
+          </span>
+        </div>
+        <ol className="how-process" id="how-process" aria-live="polite">
+          {steps[audience].map(([title, description], index) => {
+            const Icon = howIcons[audience][index];
+            return (
+              <li key={title}>
+                <span className="how-number" aria-hidden="true">
+                  {index + 1}
+                </span>
+                <div className="how-card">
+                  <span className="how-step-icon">
+                    <Icon aria-hidden="true" />
+                  </span>
+                  <div>
+                    <h2>{title}</h2>
+                    <p>{description}</p>
+                  </div>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+    </section>
+  );
+}
 export function Home({ user }) {
   const startups = useData('/startups');
   const saved = useData('/startups/saved', user?.role === 'graduate');
@@ -230,7 +332,7 @@ export function Home({ user }) {
           <Preview />
         </div>
       </section>
-      <ProfileVideo kind="promo" subject="official" user={user} />
+      <TalentShowcase user={user} heading="h2" />
       <section className="home-features" aria-label="What STARTLINK offers">
         <div className="shell">
           <div className="grid four">

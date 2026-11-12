@@ -9,7 +9,7 @@ import {
   StartupFollow,
   User,
 } from './models.js';
-import { role, verified } from './auth.js';
+import { authenticate, role, verified } from './auth.js';
 import {
   attachment,
   body,
@@ -31,6 +31,7 @@ import {
 } from './core.js';
 import { validateAttachments } from './files.js';
 import { active, ownedStartupIds, publicStartupIds, startupMember, visible } from './discovery.js';
+import { match } from './matching.js';
 
 const fields = {
   type: z.enum(['project', 'challenge']),
@@ -122,22 +123,80 @@ async function claimCapacity(Model, filter, capacity, write) {
   fail(409, 'This opportunity has reached its capacity.');
 }
 export const opportunities = Router();
+const facetValues = (field) => [
+  { $group: { _id: '$' + field, count: { $sum: 1 } } },
+  { $match: { _id: { $nin: [null, ''] } } },
+  { $sort: { _id: 1 } },
+];
+const exact = (value) => new RegExp('^' + escape(value) + '$', 'i');
+
+opportunities.get('/filters', async (req, res) => {
+  const [facets] = await Opportunity.aggregate([
+    { $match: { ...active(), startupId: { $in: await publicStartupIds() } } },
+    {
+      $facet: {
+        type: facetValues('type'),
+        workMode: facetValues('workMode'),
+        category: facetValues('category'),
+        location: facetValues('location'),
+        skill: [
+          { $project: { skills: { $setUnion: [{ $ifNull: ['$requiredSkills', []] }, []] } } },
+          { $unwind: '$skills' },
+          ...facetValues('skills'),
+        ],
+      },
+    },
+  ]).collation({ locale: 'en', strength: 2 });
+  send(res, facets);
+});
+
 opportunities.get('/', async (req, res) => {
   const options = query(req, {
     type: z.enum(['project', 'challenge']).optional(),
     skill: optional().optional(),
+    requiredSkill: optional().optional(),
+    location: optional(120).optional(),
+    category: optional().optional(),
     workMode: z.enum(['remote', 'onsite', 'hybrid']).optional(),
+    deadline: z.enum(['7', '30']).optional(),
+    personalized: z.literal('true').optional(),
   });
   const filter = { ...active(), startupId: { $in: await publicStartupIds() } };
   if (options.type) filter.type = options.type;
   if (options.workMode) filter.workMode = options.workMode;
   if (options.skill) filter.requiredSkills = new RegExp(escape(options.skill), 'i');
-  if (options.q)
-    filter.$or = ['title', 'description', 'requiredSkills'].map((field) => ({
-      [field]: new RegExp(escape(options.q), 'i'),
-    }));
+  if (options.requiredSkill) filter.requiredSkills = exact(options.requiredSkill);
+  if (options.location) filter.location = exact(options.location);
+  if (options.category) filter.category = exact(options.category);
+  if (options.deadline)
+    filter.deadline.$lte = new Date(
+      filter.deadline.$gt.getTime() + Number(options.deadline) * 86400000,
+    );
+  if (options.q) {
+    const term = new RegExp(escape(options.q), 'i');
+    const startups = await Startup.find({ ...visible, name: term }).distinct('_id');
+    filter.$or = [
+      ...['title', 'description', 'requiredSkills'].map((field) => ({ [field]: term })),
+      { startupId: { $in: startups } },
+    ];
+  }
+  let profile;
+  if (options.personalized) {
+    res.set('Cache-Control', 'private, no-store');
+    const { user } = await authenticate(req.get('authorization')?.match(/^Bearer (\S+)$/)?.[1]);
+    if (user.role === 'graduate')
+      profile = await GraduateProfile.findOne({ userId: user._id }).lean();
+  }
   const result = await page(Opportunity, filter, options, 'title');
-  await Opportunity.populate(result.items, { path: 'startupId', select: 'name slug' });
+  await Opportunity.populate(result.items, {
+    path: 'startupId',
+    select: 'name slug industry logo',
+  });
+  if (profile?.skills?.length) {
+    for (const item of result.items) {
+      if (meetsMandatorySkills(profile, item)) item.matchScore = match(profile, item).score;
+    }
+  }
   send(res, result);
 });
 opportunities.get('/mine', ...role('startup'), async (req, res) =>

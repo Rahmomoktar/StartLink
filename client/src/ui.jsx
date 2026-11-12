@@ -1,5 +1,20 @@
 import { useState } from 'react';
-import { ArrowRight, ArrowUpRight, Menu, X, Bell, ChevronDown } from 'lucide-react';
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Menu,
+  X,
+  Bell,
+  ChevronDown,
+  Eye,
+  GraduationCap,
+  MapPin,
+  Leaf,
+  ChartNoAxesColumnIncreasing,
+  CodeXml,
+  HeartPulse,
+  UsersRound,
+} from 'lucide-react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { errorText, useData } from './api';
 import startlinkLogo from './assets/startlink-logo.png';
@@ -29,13 +44,25 @@ export function Header({ user, startupInbox }) {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const startup = user?.role === 'startup' && /^\/startup(?:\/|$)/.test(pathname);
+  const admin = user?.role === 'admin' && /^\/admin(?:\/|$)/.test(pathname);
   const companies = useData('/startups/mine', startup);
   const company = companies.data?.[0];
   const companyName = company?.name || user?.fullName;
   const close = () => setOpen(false);
   const dashboard = user?.role === 'admin' ? '/admin' : '/' + user?.role + '/dashboard';
   return (
-    <header className={'site-header' + (startup ? ' startup-header' : '')}>
+    <header
+      className={
+        'site-header' +
+        (startup
+          ? ' startup-header'
+          : admin
+            ? ' admin-header'
+            : pathname === '/how-it-works'
+              ? ' how-header'
+              : '')
+      }
+    >
       <a className="skip" href="#main">
         Skip to content
       </a>
@@ -188,10 +215,10 @@ export const Tags = ({ items = [] }) =>
       ))}
     </div>
   ) : null;
-export const Title = ({ label, title, children }) => (
+export const Title = ({ label, title, children, heading: _Heading = 'h1' }) => (
   <div className="page-title">
     {label && <p className="eyebrow">{label}</p>}
-    <h1>{title}</h1>
+    <_Heading>{title}</_Heading>
     {children && <p>{children}</p>}
   </div>
 );
@@ -216,17 +243,55 @@ export function Pager({ data, page, onPage }) {
     )
   );
 }
-export function StartupCard({ item, action }) {
+const demoStartupStyles = {
+  'demo-greenspark': ['green', Leaf],
+  'demo-innovatehub': ['design', ChartNoAxesColumnIncreasing],
+  'demo-techconnect-labs': ['tech', CodeXml],
+  'demo-greensphere': ['energy', Leaf],
+  'demo-campuslink': ['campus', UsersRound],
+  'demo-eduspark': ['learning', GraduationCap],
+  'demo-healthnova': ['health', HeartPulse],
+};
+
+export function StartupCover({ item }) {
+  const theme = item.sample && demoStartupStyles[item.slug]?.[0];
   return (
-    <article className="card startup-card">
+    <span className={'startup-cover' + (theme ? ' startup-cover-' + theme : '')} aria-hidden="true">
+      {item.banner && <img src={item.banner} alt="" />}
+    </span>
+  );
+}
+
+export function StartupMark({ item, branded = true }) {
+  const Icon = branded && item.sample && demoStartupStyles[item.slug]?.[1];
+  return (
+    <span className="tile startup-mark" aria-hidden="true">
+      {item.logo ? (
+        <img src={item.logo} alt="" loading="lazy" />
+      ) : Icon ? (
+        <Icon size={27} />
+      ) : (
+        item.name[0]
+      )}
+    </span>
+  );
+}
+
+export function StartupCard({ item, action, directory = false }) {
+  const location = [item.location, item.startupStage].filter(Boolean).join(' · ');
+  return (
+    <article className={'card startup-card' + (directory ? ' startup-directory-card' : '')}>
       <div className="card-top">
-        <span className="tile">
-          {item.logo ? <img src={item.logo} alt="" loading="lazy" /> : item.name[0]}
-        </span>
+        {directory && <StartupCover item={item} />}
+        <StartupMark item={item} branded={directory} />
         <span className="tag">{item.industry}</span>
       </div>
       <h3>{item.name}</h3>
-      <p className="meta">{[item.location, item.startupStage].filter(Boolean).join(' · ')}</p>
+      {location && (
+        <p className="meta startup-card-location">
+          {directory && <MapPin size={15} aria-hidden="true" />} {location}
+        </p>
+      )}
       <p>{item.description}</p>
       <Tags items={item.requiredSkills} />
       <p className="meta">
@@ -265,12 +330,55 @@ export function OpportunityCard({ item, action }) {
     </article>
   );
 }
-export function TalentCard({ item, action }) {
+export function TalentPortrait({ user }) {
+  const demo = user?.avatar?.match(/\/demo\/talent-portraits\.png#([0-5])$/);
+  return (
+    <span
+      className={'tile talent-portrait' + (demo ? ' demo-portrait portrait-' + demo[1] : '')}
+      aria-hidden="true"
+    >
+      {!demo &&
+        (user?.avatar ? <img alt="" src={user.avatar} loading="lazy" /> : user?.fullName?.[0])}
+    </span>
+  );
+}
+
+export function TalentCard({ item, action, showcase = false }) {
+  if (showcase) {
+    return (
+      <article className="card showcase-card">
+        <div className="showcase-card-person">
+          <TalentPortrait user={item.userId} />
+          <div>
+            <h3>
+              {item.userId?.fullName} {item.userId?.sample && <span className="tag">Demo</span>}
+            </h3>
+            {item.education?.[0] && (
+              <p>
+                <GraduationCap size={15} aria-hidden="true" /> {item.education[0]}
+              </p>
+            )}
+            {item.location && (
+              <p>
+                <MapPin size={15} aria-hidden="true" /> {item.location}
+              </p>
+            )}
+            <Tags items={item.skills} />
+          </div>
+        </div>
+        <p className="showcase-card-bio">{item.bio || item.headline}</p>
+        <div className="actions">
+          <Button to={'/talent/' + item.userId?._id}>
+            <Eye size={16} aria-hidden="true" /> View Profile
+          </Button>
+          {action}
+        </div>
+      </article>
+    );
+  }
   return (
     <article className="card">
-      <div className="tile">
-        {item.userId?.avatar ? <img alt="" src={item.userId.avatar} /> : item.userId?.fullName?.[0]}
-      </div>
+      <TalentPortrait user={item.userId} />
       <h3>{item.userId?.fullName}</h3>
       <p>{item.headline}</p>
       <Tags items={item.skills} />

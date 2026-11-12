@@ -1,6 +1,20 @@
 import { useRef, useState } from 'react';
-import { BriefcaseBusiness, GraduationCap, SlidersHorizontal, X } from 'lucide-react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import {
+  ArrowLeft,
+  BadgeCheck,
+  BriefcaseBusiness,
+  Building2,
+  GraduationCap,
+  Layers,
+  MapPin,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  UsersRound,
+  UserRoundPlus,
+  X,
+} from 'lucide-react';
+import { Link, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { search, useAction, useData } from './api';
 import { Form, Mutate, ReportForm, split } from './forms';
@@ -14,73 +28,138 @@ import {
   Pager,
   Result,
   StartupCard,
+  StartupCover,
+  StartupMark,
   Tags,
   TalentCard,
+  TalentPortrait,
   Title,
 } from './ui';
 
-const configs = {
-  startups: {
-    title: 'Discover Startups',
-    description: 'Explore verified startup teams and the skills they’re looking for.',
-    filters: [
-      ['industry', 'Industry'],
-      ['stage', 'Startup stage'],
-      ['skills', 'Skill'],
-      [
-        'active',
-        'Availability',
-        [
-          ['', 'All startups'],
-          ['true', 'Open opportunities'],
-        ],
-      ],
+const startupFilters = [
+  ['industry', 'Industry'],
+  ['stage', 'Startup stage'],
+  ['skills', 'Skill'],
+  [
+    'active',
+    'Availability',
+    [
+      ['', 'All startups'],
+      ['true', 'Open opportunities'],
     ],
-    Card: StartupCard,
-  },
-  graduates: {
-    title: 'Talent Showcase',
-    description: 'Discover graduates who have opted in to share their skills and work.',
-    filters: [
-      ['skills', 'Skill'],
-      ['study', 'Field of study'],
-      ['availability', 'Availability'],
-      ['location', 'Location'],
-    ],
-    Card: TalentCard,
-  },
-  opportunities: {
-    title: 'Build With Us',
-    description: 'Join startup projects and take on practical startup challenges.',
-    filters: [
-      ['skill', 'Skill'],
-      [
-        'workMode',
-        'Work mode',
-        [
-          ['', 'Any'],
-          ['remote', 'Remote'],
-          ['onsite', 'Onsite'],
-          ['hybrid', 'Hybrid'],
-        ],
-      ],
-    ],
-    Card: OpportunityCard,
-  },
-};
-function DirectoryIntro({ title, children }) {
+  ],
+];
+export function TalentShowcase({ user, heading }) {
+  const canBrowse = ['startup', 'admin'].includes(user?.role);
+  const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState({});
+  const query = useData(search('/graduates', { ...filters, page }), canBrowse);
+  const options = useData('/graduates/filters', canBrowse);
+  const changeFilter = ({ target: { name, value } }) => {
+    setFilters((current) => ({ ...current, [name]: value }));
+    setPage(1);
+  };
   return (
-    <div className="directory-intro dark">
-      <div className="shell">
-        <Title title={title}>{children}</Title>
-      </div>
-    </div>
+    <section className="shell talent-showcase">
+      <header className="showcase-heading">
+        <span className="feature-icon">
+          <GraduationCap size={28} aria-hidden="true" />
+        </span>
+        <Title title="Talent Showcase" heading={heading}>
+          Discover talented graduates, explore their skills and projects, and connect with future
+          team members.
+        </Title>
+        {(!user || user.role === 'graduate') && (
+          <Button variant="gold" to={user ? '/graduate/profile?view=edit' : '/register/graduate'}>
+            <Plus size={17} aria-hidden="true" /> Create My Profile
+          </Button>
+        )}
+      </header>
+      {canBrowse ? (
+        <>
+          <div className="showcase-filters" role="search" aria-label="Find graduates">
+            <label className="showcase-search">
+              <span className="sr-only">Search by name, skill, or university</span>
+              <Search size={16} aria-hidden="true" />
+              <input
+                name="q"
+                type="search"
+                placeholder="Search by name, skill, or university…"
+                value={filters.q ?? ''}
+                onChange={changeFilter}
+                maxLength={100}
+              />
+            </label>
+            {[
+              ['skills', 'Skills', options.data?.skills],
+              ['study', 'Universities', options.data?.universities],
+              ['location', 'Locations', options.data?.locations],
+            ].map(([name, labelText, values]) => (
+              <select
+                key={name}
+                aria-label={labelText}
+                name={name}
+                value={filters[name] ?? ''}
+                onChange={changeFilter}
+              >
+                <option value="">All {labelText}</option>
+                {values?.map((value) => (
+                  <option key={value}>{value}</option>
+                ))}
+              </select>
+            ))}
+            <select
+              aria-label="Sort graduates"
+              name="sort"
+              value={filters.sort ?? 'recent'}
+              onChange={changeFilter}
+            >
+              <option value="recent">Sort: Recent</option>
+              <option value="name">Sort: Name</option>
+            </select>
+          </div>
+          <Result query={query} empty="No graduates match these filters.">
+            {(data) => (
+              <>
+                <div className="grid three showcase-grid">
+                  {data.items.map((item) => (
+                    <TalentCard
+                      key={item._id}
+                      item={item}
+                      showcase
+                      action={
+                        user.role === 'startup' ? (
+                          <TalentInvite graduateId={item.userId._id} name={item.userId.fullName} />
+                        ) : undefined
+                      }
+                    />
+                  ))}
+                </div>
+                <Pager data={data} page={page} onPage={setPage} />
+              </>
+            )}
+          </Result>
+        </>
+      ) : (
+        <article className="card showcase-gate">
+          <h2>Find talent for your startup</h2>
+          <p>
+            Startup accounts can browse graduate profiles whose owners have chosen to share them.
+          </p>
+          <Button to={user ? '/discover-startups' : '/login?returnTo=%2Ftalent'}>
+            {user ? 'Discover Startups' : 'Log In as a Startup'}
+          </Button>
+        </article>
+      )}
+    </section>
   );
 }
+
 export function Directory({ kind, user }) {
-  const { title, description, filters, Card } = configs[kind];
-  const isStartupDirectory = kind === 'startups';
-  const [params, setParams] = useSearchParams();
+  return kind === 'graduates' ? <TalentShowcase user={user} /> : <StartupDirectory user={user} />;
+}
+
+function StartupDirectory({ user }) {
   const [page, setPage] = useState(1);
   const [input, setInput] = useState({});
   const [draft, setDraft] = useState({});
@@ -88,68 +167,8 @@ export function Directory({ kind, user }) {
   const changeFilter = ({ target: { name, value } }) => {
     setDraft((current) => ({ ...current, [name]: value }));
   };
-  const type = params.get('type') || '';
-  const query = useData(
-    search('/' + kind, { ...input, page, type: kind === 'opportunities' ? type : undefined }),
-    kind !== 'graduates' || ['admin', 'startup'].includes(user?.role),
-  );
-  const saved = useData('/startups/saved', kind === 'startups' && user?.role === 'graduate');
-  if (kind === 'graduates' && !['admin', 'startup'].includes(user?.role))
-    return (
-      <section className="directory">
-        <DirectoryIntro title={title}>{description}</DirectoryIntro>
-        <div className="shell talent-entry grid two">
-          <article className="card">
-            <span className="feature-icon">
-              <GraduationCap aria-hidden="true" />
-            </span>
-            <h2>Showcase your skills</h2>
-            <p>
-              Add projects, skills, and a video introduction. You control whether startup teams can
-              see your profile.
-            </p>
-            <Button to={user ? '/graduate/profile/edit' : '/register/graduate'}>
-              {user ? 'Edit My Profile' : 'Join as Graduate'}
-            </Button>
-          </article>
-          <article className="card">
-            <span className="feature-icon">
-              <BriefcaseBusiness aria-hidden="true" />
-            </span>
-            <h2>Find talent for your startup</h2>
-            <p>
-              Browse graduate profiles by skill, location, and availability with a startup account.
-            </p>
-            <Button
-              to={user ? '/discover-startups' : '/login?returnTo=%2Ftalent'}
-              variant="outline"
-            >
-              {user ? 'Discover Startups' : 'Log In as a Startup'}
-            </Button>
-          </article>
-        </div>
-      </section>
-    );
-  const opportunityTypes = kind === 'opportunities' && (
-    <div className="segments" aria-label="Opportunity type">
-      {[
-        ['', 'All Opportunities'],
-        ['project', 'Join Projects'],
-        ['challenge', 'Startup Challenges'],
-      ].map(([value, text]) => (
-        <button
-          key={value}
-          aria-pressed={type === value}
-          onClick={() => {
-            setParams(value ? { type: value } : {});
-            setPage(1);
-          }}
-        >
-          {text}
-        </button>
-      ))}
-    </div>
-  );
+  const query = useData(search('/startups', { ...input, page }));
+  const saved = useData('/startups/saved', user?.role === 'graduate');
   const filterForm = (
     <form
       className="filters"
@@ -170,17 +189,7 @@ export function Directory({ kind, user }) {
           <X size={18} aria-hidden="true" />
         </Button>
       </div>
-      <label>
-        Search
-        <input
-          name="q"
-          type="search"
-          value={draft.q ?? ''}
-          onChange={changeFilter}
-          placeholder={isStartupDirectory ? 'Name or keyword' : 'Search keywords'}
-        />
-      </label>
-      {filters.map(([name, text, options]) => (
+      {startupFilters.map(([name, text, options]) => (
         <label key={name}>
           {text}
           {options ? (
@@ -219,25 +228,17 @@ export function Directory({ kind, user }) {
     </form>
   );
   const results = (
-    <Result
-      query={query}
-      empty={
-        isStartupDirectory
-          ? 'No startups found. Try changing or clearing your filters.'
-          : 'No results match these filters.'
-      }
-    >
+    <Result query={query} empty="No startups found. Try changing or clearing your filters.">
       {(data) => (
         <>
           <div className="grid directory-grid">
             {data.items.map((item) => (
-              <Card
+              <StartupCard
                 key={item._id}
                 item={item}
+                directory
                 action={
-                  kind === 'startups' && user?.role === 'graduate' ? (
-                    <Follow item={item} saved={saved.data} />
-                  ) : undefined
+                  user?.role === 'graduate' ? <Follow item={item} saved={saved.data} /> : undefined
                 }
               />
             ))}
@@ -248,15 +249,8 @@ export function Directory({ kind, user }) {
     </Result>
   );
   const total = query.data?.total;
-  const noun = { startups: 'startup', graduates: 'graduate', opportunities: 'opportunity' }[kind];
-  const resultsTitle = {
-    startups: 'Startup directory',
-    graduates: 'Graduate directory',
-    opportunities: 'Browse opportunities',
-  }[kind];
   return (
-    <section className="directory">
-      <DirectoryIntro title={title}>{description}</DirectoryIntro>
+    <section className="directory startup-directory">
       <div className="shell directory-layout">
         <dialog
           className="filter-dialog"
@@ -276,13 +270,24 @@ export function Directory({ kind, user }) {
         </dialog>
         <section aria-labelledby="directory-results-heading">
           <div className="directory-results-heading">
-            <h2 id="directory-results-heading">{resultsTitle}</h2>
+            <h1 id="directory-results-heading">Startup Directory</h1>
             <span role="status">
-              {total !== undefined &&
-                total +
-                  ' ' +
-                  (total === 1 ? noun : kind === 'opportunities' ? 'opportunities' : noun + 's')}
+              {total !== undefined && total + (total === 1 ? ' startup' : ' startups')}
             </span>
+            <label className="startup-directory-search showcase-search">
+              <span className="sr-only">Search startups</span>
+              <Search size={17} aria-hidden="true" />
+              <input
+                type="search"
+                maxLength={100}
+                placeholder="Search startups…"
+                value={input.q ?? ''}
+                onChange={(event) => {
+                  setInput((current) => ({ ...current, q: event.target.value }));
+                  setPage(1);
+                }}
+              />
+            </label>
             <Button
               variant="outline"
               aria-haspopup="dialog"
@@ -294,7 +299,6 @@ export function Directory({ kind, user }) {
               <SlidersHorizontal size={17} aria-hidden="true" /> Filters
             </Button>
           </div>
-          {opportunityTypes}
           {results}
         </section>
       </div>
@@ -312,6 +316,84 @@ export function Follow({ item, saved }) {
     >
       {followed ? 'Unfollow Startup' : 'Follow Startup'}
     </Mutate>
+  );
+}
+function TalentInvite({ graduateId, name }) {
+  const dialog = useRef(null);
+  const [open, setOpen] = useState(false);
+  const companies = useData('/startups/mine', open);
+  const action = useAction();
+  const titleId = 'invite-' + graduateId;
+  return (
+    <>
+      <Button
+        variant="outline"
+        aria-haspopup="dialog"
+        onClick={() => {
+          setOpen(true);
+          dialog.current.showModal();
+        }}
+      >
+        <UserRoundPlus size={16} aria-hidden="true" /> Connect
+      </Button>
+      <dialog
+        className="showcase-invite"
+        ref={dialog}
+        aria-labelledby={titleId}
+        onClose={() => setOpen(false)}
+      >
+        <div className="filter-dialog-heading">
+          <h2 id={titleId}>Connect with {name}</h2>
+          <Button
+            variant="outline"
+            aria-label="Close invitation"
+            onClick={() => dialog.current.close()}
+          >
+            <X size={17} aria-hidden="true" />
+          </Button>
+        </div>
+        {open && (
+          <Result
+            query={companies}
+            empty="Create and verify a startup profile before sending invitations."
+          >
+            {(items) => {
+              const eligible = items.filter(
+                (item) => item.verificationStatus === 'verified' && item.visibility,
+              );
+              if (!eligible.length)
+                return (
+                  <p className="notice">
+                    A public, verified startup is required to send invitations.
+                  </p>
+                );
+              return (
+                <Form
+                  fields={[
+                    {
+                      name: 'startupId',
+                      label: 'Send from',
+                      options: eligible.map((item) => [item._id, item.name]),
+                      defaultValue: eligible[0]._id,
+                    },
+                    { name: 'message', label: 'Introduction', type: 'textarea' },
+                  ]}
+                  submit="Send Invitation"
+                  onSubmit={async ({ startupId, message }) => {
+                    await action.mutateAsync({
+                      path: '/connections',
+                      data: { startupId, graduateId, message },
+                    });
+                    dialog.current.close();
+                    toast.success('Connection request sent.');
+                  }}
+                />
+              );
+            }}
+          </Result>
+        )}
+      </dialog>
+    </>
   );
 }
 function ConnectForm({ startupId, graduateId }) {
@@ -344,47 +426,105 @@ function StartupDetailContent({ item, user }) {
   const saved = useData('/startups/saved', user?.role === 'graduate');
   return (
     <>
-      <div className="card detail">
-        {item.banner && <img className="banner" src={item.banner} alt="" />}
-        <div className="tile">{item.logo ? <img alt="" src={item.logo} /> : item.name[0]}</div>
-        <Title label={item.sample ? 'Demo profile' : item.industry} title={item.name}>
-          {item.location} · {label(item.startupStage)}
-        </Title>
-        <p>{item.description}</p>
-        <Tags items={item.requiredSkills} />
-        <ProfileVideo kind="startup" subject={item._id} user={user} />
-        {item.founders?.length > 0 && (
-          <p>
-            <strong>Founders and team</strong>
-            <br />
-            {item.founders.join(', ')}
-          </p>
-        )}
-        {item.website && (
-          <a className="text-link" href={item.website} target="_blank" rel="noreferrer">
-            Company Website <External />
-          </a>
-        )}
-        <div className="actions">
-          {user?.role === 'graduate' && (
-            <>
-              <Follow item={item} saved={saved.data} />
-              <ConnectForm startupId={item._id} />
-            </>
-          )}
-          {user && <ReportForm id={item._id} type="startup" />}
-        </div>
-      </div>
-      <h2 className="subheading">Projects and Challenges</h2>
-      <Result query={opportunities} empty="This startup has no active opportunities.">
-        {(data) => (
-          <div className="grid three">
-            {data.items.map((item) => (
-              <OpportunityCard key={item._id} item={item} />
-            ))}
+      <header className="startup-profile-hero">
+        <StartupCover item={item} />
+        <StartupMark item={item} />
+        <div>
+          <div className="startup-profile-badges">
+            <span>{item.industry}</span>
+            {item.sample ? (
+              <span>Demo profile</span>
+            ) : (
+              item.verificationStatus === 'verified' && (
+                <span>
+                  <BadgeCheck size={16} aria-hidden="true" /> Verified startup
+                </span>
+              )
+            )}
           </div>
+          <h1>{item.name}</h1>
+          <p>{[item.location, label(item.startupStage)].filter(Boolean).join(' · ')}</p>
+        </div>
+      </header>
+      <div className="startup-profile-details">
+        <article className="card">
+          <h2>About the startup</h2>
+          <p>{item.description}</p>
+          {item.requiredSkills?.length > 0 && (
+            <div>
+              <h3>Skills we look for</h3>
+              <Tags items={item.requiredSkills} />
+            </div>
+          )}
+          <ProfileVideo kind="startup" subject={item._id} user={user} />
+        </article>
+        <aside className="card startup-company-details">
+          <h2>
+            <Building2 size={22} aria-hidden="true" /> Company details
+          </h2>
+          {item.location && (
+            <p>
+              <MapPin size={17} aria-hidden="true" /> {item.location}
+            </p>
+          )}
+          {item.founders?.length > 0 && (
+            <div>
+              <h3>
+                <UsersRound size={18} aria-hidden="true" /> Founders and team
+              </h3>
+              <p>{item.founders.join(', ')}</p>
+            </div>
+          )}
+          {item.website && (
+            <a className="text-link" href={item.website} target="_blank" rel="noreferrer">
+              Company Website <External />
+            </a>
+          )}
+          {user && (
+            <div className="actions">
+              {user.role === 'graduate' && (
+                <>
+                  <Follow item={item} saved={saved.data} />
+                  <ConnectForm startupId={item._id} />
+                </>
+              )}
+              <ReportForm id={item._id} type="startup" />
+            </div>
+          )}
+        </aside>
+      </div>
+      <section
+        className="startup-profile-opportunities"
+        aria-labelledby="startup-opportunities-title"
+      >
+        <h2 id="startup-opportunities-title">
+          <Layers size={24} aria-hidden="true" /> Projects and Challenges
+        </h2>
+        {opportunities.isSuccess && !opportunities.data.items.length ? (
+          <div className="startup-opportunities-empty">
+            <span className="feature-icon">
+              <BriefcaseBusiness size={24} aria-hidden="true" />
+            </span>
+            <div>
+              <h3>No open opportunities</h3>
+              <p>This startup has no active opportunities.</p>
+            </div>
+            <Button to="/opportunities" variant="outline">
+              Browse Opportunities <External />
+            </Button>
+          </div>
+        ) : (
+          <Result query={opportunities} empty="This startup has no active opportunities.">
+            {(data) => (
+              <div className="grid three">
+                {data.items.map((item) => (
+                  <OpportunityCard key={item._id} item={item} />
+                ))}
+              </div>
+            )}
+          </Result>
         )}
-      </Result>
+      </section>
     </>
   );
 }
@@ -392,9 +532,9 @@ export function StartupDetail({ user }) {
   const { slug } = useParams();
   const query = useData('/startups/' + encodeURIComponent(slug));
   return (
-    <section className="shell section">
-      <Link className="text-link" to="/discover-startups">
-        ← Discover Startups
+    <section className="shell startup-profile-page">
+      <Link className="startup-directory-back" to="/discover-startups">
+        <ArrowLeft size={17} aria-hidden="true" /> Discover Startups
       </Link>
       <Result query={query}>{(item) => <StartupDetailContent item={item} user={user} />}</Result>
     </section>
@@ -419,13 +559,7 @@ export function TalentDetail({ user }) {
       <Result query={query}>
         {(item) => (
           <article className="card detail">
-            <div className="tile">
-              {item.userId.avatar ? (
-                <img src={item.userId.avatar} alt="" />
-              ) : (
-                item.userId.fullName[0]
-              )}
-            </div>
+            <TalentPortrait user={item.userId} />
             <Title title={item.userId.fullName}>{item.headline}</Title>
             <p>{item.bio}</p>
             <p>{[item.location, item.availability, item.workMode].filter(Boolean).join(' · ')}</p>
@@ -513,7 +647,7 @@ export function OpportunityDetail({ user }) {
   return (
     <section className="shell section">
       <Link className="text-link" to="/opportunities">
-        ← Build With Us
+        ← Browse Opportunities
       </Link>
       <Result query={query}>
         {(item) => {

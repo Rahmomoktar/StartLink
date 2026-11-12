@@ -58,7 +58,7 @@ test('homepage contrast, mobile navigation, and account validation', async ({ pa
     .getByRole('navigation', { name: 'Main navigation' })
     .getByRole('link', { name: 'Discover Startups' })
     .click();
-  await expect(page.getByRole('heading', { level: 1, name: 'Discover Startups' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Startup Directory' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await axe();
   await page.goto('/graduate/dashboard');
@@ -161,7 +161,18 @@ test('publishes, applies, reviews, matches, and exchanges messages in real time'
     await expect(graduate.getByText('Shared required skills: React.')).toBeVisible();
 
     await graduate.goto('/opportunities');
-    await graduate.getByRole('link', { name: 'View Opportunity' }).click();
+    await expect(graduate.getByText('1 opportunity', { exact: true })).toBeVisible();
+    await expect(graduate.getByText('Matched 100%')).toBeVisible();
+    await graduate.getByRole('combobox', { name: 'Skill', exact: true }).selectOption('React');
+    await graduate.getByRole('button', { name: 'Startup Challenges' }).click();
+    await expect(graduate.getByText('0 opportunities', { exact: true })).toBeVisible();
+    await graduate.getByRole('button', { name: 'Join Projects' }).click();
+    await expect(graduate.getByText('1 opportunity', { exact: true })).toBeVisible();
+    const opportunitySearch = graduate.getByRole('searchbox', { name: 'Search opportunities' });
+    await opportunitySearch.fill('Unlisted startup');
+    await expect(graduate.getByText('0 opportunities', { exact: true })).toBeVisible();
+    await opportunitySearch.fill('Browser Labs');
+    await graduate.getByRole('link', { name: 'Apply Now' }).click();
     await graduate.getByLabel('Why are you interested?').fill('I write browser tests.');
     await graduate.getByLabel('Availability', { exact: true }).fill('Part time');
     await graduate.getByRole('button', { name: 'Send Application' }).click();

@@ -291,7 +291,9 @@ graduateRoutes.get('/', ...role('startup', 'admin'), async (req, res) => {
     study: optional().optional(),
   });
   const filter = await talentFilter();
-  if (options.q)
+  if (options.q) {
+    const pattern = new RegExp(escape(options.q), 'i');
+    const names = await User.find({ _id: filter.userId, fullName: pattern }).distinct('_id');
     filter.$or = [
       'headline',
       'skills',
@@ -299,7 +301,9 @@ graduateRoutes.get('/', ...role('startup', 'admin'), async (req, res) => {
       'education',
       'location',
       'portfolioProjects.description',
-    ].map((field) => ({ [field]: new RegExp(escape(options.q), 'i') }));
+    ].map((field) => ({ [field]: pattern }));
+    filter.$or.push({ userId: { $in: names } });
+  }
   for (const [key, value] of [
     ['skills', options.skills],
     ['availability', options.availability],
@@ -308,10 +312,53 @@ graduateRoutes.get('/', ...role('startup', 'admin'), async (req, res) => {
   ]) {
     if (value) filter[key] = new RegExp(escape(value), 'i');
   }
-  const result = await page(GraduateProfile, filter, options, 'headline');
-  await GraduateProfile.populate(result.items, { path: 'userId', select: 'fullName avatar' });
+  let result;
+  if (options.sort === 'name') {
+    const limit = 12;
+    const [{ items, count }] = await GraduateProfile.aggregate([
+      { $match: filter },
+      {
+        $lookup: {
+          from: User.collection.name,
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'person',
+        },
+      },
+      { $sort: { 'person.fullName': 1, _id: 1 } },
+      { $unset: 'person' },
+      {
+        $facet: {
+          items: [{ $skip: (options.page - 1) * limit }, { $limit: limit }],
+          count: [{ $count: 'total' }],
+        },
+      },
+    ]).collation({ locale: 'en', strength: 2 });
+    const total = count[0]?.total || 0;
+    result = { items, total, page: options.page, pages: Math.ceil(total / limit) };
+  } else {
+    result = await page(GraduateProfile, filter, options);
+  }
+  await GraduateProfile.populate(result.items, {
+    path: 'userId',
+    select: 'fullName avatar sample',
+  });
   result.items = result.items.map(safeTalent);
   send(res, result);
+});
+graduateRoutes.get('/filters', ...role('startup', 'admin'), async (req, res) => {
+  const filter = await talentFilter();
+  const [skills, locations, education] = await Promise.all(
+    ['skills', 'location', 'education'].map((field) => GraduateProfile.distinct(field, filter)),
+  );
+  const universities = education.map((entry) => entry.split(' · ')[1]).filter(Boolean);
+  const sorted = (values) =>
+    [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  send(res, {
+    skills: sorted(skills),
+    locations: sorted(locations),
+    universities: sorted(universities),
+  });
 });
 graduateRoutes.get('/:id', ...role('startup', 'admin'), async (req, res) => {
   const userId = param(req);
@@ -322,7 +369,7 @@ graduateRoutes.get('/:id', ...role('startup', 'admin'), async (req, res) => {
     safeTalent(
       exists(
         await GraduateProfile.findOne({ userId, visibility: true })
-          .populate('userId', 'fullName avatar')
+          .populate('userId', 'fullName avatar sample')
           .lean(),
       ),
     ),

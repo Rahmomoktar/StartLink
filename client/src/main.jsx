@@ -16,6 +16,7 @@ import { base, renew, setListener } from './api';
 import { Home, How, Information } from './home';
 import { AuthForm, RegisterChoice } from './forms';
 import { Directory, OpportunityDetail, StartupDetail, TalentDetail } from './discover';
+import { Opportunities } from './opportunities';
 import {
   AccountSettings,
   Applications,
@@ -29,10 +30,11 @@ import {
   Workspace,
 } from './workspace';
 import { Connections, Messages, Notifications, StartupInbox } from './community';
-import { AdminOverview, AdminSection } from './admin';
+import { AdminOverview, AdminSection, AdminSettings } from './admin';
 import { Overview } from './dashboard';
 import { Button, Footer, Header, Title } from './ui';
 import './styles.css';
+import './admin-overview.css';
 
 function GraduateViews({ views }) {
   const [params] = useSearchParams();
@@ -92,6 +94,7 @@ function App() {
   const { pathname } = useLocation();
   const graduateWorkspace = user?.role === 'graduate' && /^\/graduate(?:\/|$)/.test(pathname);
   const startupWorkspace = user?.role === 'startup' && /^\/startup(?:\/|$)/.test(pathname);
+  const adminWorkspace = user?.role === 'admin' && /^\/admin(?:\/|$)/.test(pathname);
   useEffect(() => {
     let previous;
     setListener((next) => {
@@ -134,14 +137,16 @@ function App() {
   }, [pathname]);
   return (
     <>
-      {graduateWorkspace ? (
+      {graduateWorkspace || adminWorkspace ? (
         <a className="skip" href="#main">
           Skip to content
         </a>
       ) : (
         <Header
           user={user}
-          startupInbox={startupWorkspace ? <StartupInbox key={'inbox:' + pathname} user={user} /> : undefined}
+          startupInbox={
+            startupWorkspace ? <StartupInbox key={'inbox:' + pathname} user={user} /> : undefined
+          }
         />
       )}
       <main id="main" className={pathname === '/' ? 'home-page' : 'platform-page'}>
@@ -162,10 +167,7 @@ function App() {
               element={<Directory key="graduates" kind="graduates" user={user} />}
             />
             <Route path="/talent/:id" element={<TalentDetail user={user} />} />
-            <Route
-              path="/opportunities"
-              element={<Directory key="opportunities" kind="opportunities" user={user} />}
-            />
+            <Route path="/opportunities" element={<Opportunities user={user} />} />
             <Route path="/opportunities/:id" element={<OpportunityDetail user={user} />} />
             <Route path="/register" element={<RegisterChoice />} />
             {['graduate', 'startup'].map((role) => (
@@ -321,7 +323,7 @@ function App() {
                   element={<AdminSection key={section} section={section} />}
                 />
               ))}
-              <Route path="settings" element={<AccountSettings />} />
+              <Route path="settings" element={<AdminSettings />} />
             </Route>
             <Route
               path="*"
@@ -335,7 +337,7 @@ function App() {
           </Routes>
         </ErrorBoundary>
       </main>
-      {!graduateWorkspace && !startupWorkspace && <Footer />}
+      {!graduateWorkspace && !startupWorkspace && !adminWorkspace && <Footer />}
       <Toaster richColors position="top-center" />
     </>
   );
