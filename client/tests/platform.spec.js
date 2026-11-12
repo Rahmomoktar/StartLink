@@ -83,6 +83,14 @@ test('publishes, applies, reviews, matches, and exchanges messages in real time'
     const startup = await startupContext.newPage();
     const admin = await adminContext.newPage();
     await register(startup, 'startup', 'Browser Founder', 'browser-founder@example.test');
+    await expect(
+      startup.getByRole('heading', { name: 'Startup Overview', exact: true }),
+    ).toBeVisible();
+    await expect(startup.getByRole('link', { name: /Active Projects/ })).toBeVisible();
+    await expect(startup.getByRole('heading', { name: 'Company Profile' })).toBeVisible();
+    await expect(
+      startup.getByRole('navigation', { name: 'Workspace' }).getByRole('link'),
+    ).toHaveText(['Overview', 'Projects & Challenges', 'Applications', 'Smart Matching']);
     await startup.goto('/startup/profile/edit');
     await startup.getByLabel('Company name').fill('Browser Labs');
     await startup.getByLabel('Description', { exact: true }).fill('Makes browser-based tools.');
@@ -144,6 +152,13 @@ test('publishes, applies, reviews, matches, and exchanges messages in real time'
     await graduate.getByRole('button', { name: 'Send Application' }).click();
     await expect(graduate.getByText('Submitted. Track the status')).toBeVisible();
     await startup.goto('/startup/applications');
+    await startup.getByRole('button', { name: 'Notifications', exact: true }).click();
+    const alerts = startup.getByRole('dialog', { name: 'Notifications' });
+    await expect(alerts.getByRole('button', { name: 'Mark All as Read' })).toBeEnabled();
+    await alerts.getByRole('button', { name: 'Mark All as Read' }).click();
+    await expect(alerts.getByText('0 unread', { exact: true })).toBeVisible();
+    await startup.keyboard.press('Escape');
+    await expect(alerts).not.toBeVisible();
     await startup.getByLabel('Application status').selectOption('accepted');
     await startup.getByRole('button', { name: 'Save Changes' }).click();
     await expect(startup.getByText(/Accepted ·/)).toBeVisible();
@@ -156,7 +171,8 @@ test('publishes, applies, reviews, matches, and exchanges messages in real time'
     await startup.goto('/startup/connections');
     await startup.getByRole('button', { name: 'Accept', exact: true }).click();
     await expect(startup.getByText(/Accepted ·/)).toBeVisible();
-    await startup.goto('/startup/messages');
+    await startup.getByRole('button', { name: 'Messages', exact: true }).click();
+    await expect(startup.getByRole('dialog', { name: 'Messages' })).toBeVisible();
     await graduate.goto('/graduate/messages');
     await startup.getByRole('button', { name: 'Browser Graduate' }).click();
     await graduate.getByRole('button', { name: 'Browser Founder' }).click();

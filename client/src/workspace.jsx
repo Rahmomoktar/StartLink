@@ -1,5 +1,16 @@
 import { useState } from 'react';
-import { ClipboardList, House, Link2, MessageCircle, Sparkles, UserRound } from 'lucide-react';
+import {
+  ClipboardList,
+  House,
+  Layers,
+  Link2,
+  LogOut,
+  MessageCircle,
+  Network,
+  Rocket,
+  Sparkles,
+  UserRound,
+} from 'lucide-react';
 import { Link, NavLink, Outlet, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { request, renew, setSession, search, useAction, useData } from './api';
@@ -28,12 +39,10 @@ const menus = {
     ['messages', 'Messages', MessageCircle],
   ],
   startup: [
-    ['dashboard', 'Overview'],
-    ['profile', 'Startup Profile'],
-    ['opportunities', 'Projects & Challenges'],
-    ['applications', 'Applications'],
-    ['talent', 'Find Talent'],
-    ['matches', 'Smart Matching'],
+    ['dashboard', 'Overview', House],
+    ['opportunities', 'Projects & Challenges', Layers],
+    ['applications', 'Applications', ClipboardList],
+    ['matches', 'Smart Matching', Network],
   ],
   admin: [
     ['', 'Overview'],
@@ -47,21 +56,20 @@ const menus = {
     ['settings', 'Settings'],
   ],
 };
-const common = [
-  ['connections', 'Connections'],
-  ['messages', 'Messages'],
-  ['notifications', 'Notifications'],
-  ['settings', 'Settings'],
-];
 export function Workspace({ user }) {
   const root = '/' + user.role;
   const graduate = user.role === 'graduate';
-  const menu = user.role === 'startup' ? [...menus.startup, ...common] : menus[user.role];
+  const startup = user.role === 'startup';
+  const menu = menus[user.role];
   const navigate = useNavigate();
-  const unread = useData('/notifications', user.role !== 'admin');
+  const unread = useData('/notifications', graduate);
   const count = unread.data?.unread || 0;
   return (
-    <div className={graduate ? 'shell workspace graduate-workspace' : 'shell workspace'}>
+    <div
+      className={
+        'shell workspace ' + (graduate ? 'graduate-workspace' : startup ? 'startup-workspace' : '')
+      }
+    >
       <aside className="sidebar">
         {graduate && (
           <Link className="workspace-brand" to="/">
@@ -71,7 +79,9 @@ export function Workspace({ user }) {
             </strong>
           </Link>
         )}
-        <p className="eyebrow">{label(user.role)} workspace</p>
+        <p className="eyebrow">
+          {startup && <Rocket size={28} aria-hidden="true" />} {label(user.role)} workspace
+        </p>
         <nav aria-label="Workspace">
           {menu.map(([path, name, _Icon]) => (
             <NavLink
@@ -81,7 +91,7 @@ export function Workspace({ user }) {
             >
               {_Icon && <_Icon size={18} aria-hidden="true" />}
               <span>{name}</span>
-              {(path === 'notifications' || (graduate && path === 'messages')) && count > 0 && (
+              {graduate && path === 'messages' && count > 0 && (
                 <span className="tag" aria-label={count + ' unread notifications'}>
                   {count}
                 </span>
@@ -97,7 +107,7 @@ export function Workspace({ user }) {
             navigate('/login');
           }}
         >
-          Log Out
+          {startup && <LogOut size={18} aria-hidden="true" />} Log Out
         </Mutate>
       </aside>
       <div className="workspace-main">

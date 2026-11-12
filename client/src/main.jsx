@@ -28,7 +28,7 @@ import {
   StartupProfile,
   Workspace,
 } from './workspace';
-import { Connections, Messages, Notifications } from './community';
+import { Connections, Messages, Notifications, StartupInbox } from './community';
 import { AdminOverview, AdminSection } from './admin';
 import { Overview } from './dashboard';
 import { Button, Footer, Header, Title } from './ui';
@@ -91,6 +91,7 @@ function App() {
   const cache = useQueryClient();
   const { pathname } = useLocation();
   const graduateWorkspace = user?.role === 'graduate' && /^\/graduate(?:\/|$)/.test(pathname);
+  const startupWorkspace = user?.role === 'startup' && /^\/startup(?:\/|$)/.test(pathname);
   useEffect(() => {
     let previous;
     setListener((next) => {
@@ -138,7 +139,10 @@ function App() {
           Skip to content
         </a>
       ) : (
-        <Header user={user} />
+        <Header
+          user={user}
+          startupInbox={startupWorkspace ? <StartupInbox key={pathname} user={user} /> : undefined}
+        />
       )}
       <main id="main" className={pathname === '/' ? 'home-page' : 'platform-page'}>
         <ErrorBoundary key={pathname}>
@@ -331,7 +335,7 @@ function App() {
           </Routes>
         </ErrorBoundary>
       </main>
-      {!graduateWorkspace && <Footer />}
+      {!graduateWorkspace && !startupWorkspace && <Footer />}
       <Toaster richColors position="top-center" />
     </>
   );

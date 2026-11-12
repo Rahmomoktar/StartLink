@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { ArrowRight, ArrowUpRight, Menu, X, Bell } from 'lucide-react';
-import { Link, NavLink } from 'react-router-dom';
-import { errorText } from './api';
+import { ArrowRight, ArrowUpRight, Menu, X, Bell, ChevronDown } from 'lucide-react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
+import { errorText, useData } from './api';
 import startlinkLogo from './assets/startlink-logo.png';
 
 export function Logo() {
@@ -25,12 +25,17 @@ export function Button({ to, children, variant = 'navy', className = '', ...prop
 }
 export const Forward = () => <ArrowRight size={16} aria-hidden="true" />;
 export const External = () => <ArrowUpRight size={16} aria-hidden="true" />;
-export function Header({ user }) {
+export function Header({ user, startupInbox }) {
   const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+  const startup = user?.role === 'startup' && /^\/startup(?:\/|$)/.test(pathname);
+  const companies = useData('/startups/mine', startup);
+  const company = companies.data?.[0];
+  const companyName = company?.name || user?.fullName;
   const close = () => setOpen(false);
   const dashboard = user?.role === 'admin' ? '/admin' : '/' + user?.role + '/dashboard';
   return (
-    <header className="site-header">
+    <header className={'site-header' + (startup ? ' startup-header' : '')}>
       <a className="skip" href="#main">
         Skip to content
       </a>
@@ -38,7 +43,10 @@ export function Header({ user }) {
         <div className="header-brand">
           <Logo />
           <div className="header-wordmark" aria-hidden="true">
-            START<span>LINK</span>
+            <div>
+              START<span>LINK</span>
+            </div>
+            {startup && <small>Where Talent Meets Startups</small>}
           </div>
         </div>
         <button
@@ -78,34 +86,61 @@ export function Header({ user }) {
               How It Works
             </NavLink>
           </nav>
-          <div className="header-actions">
-            {user ? (
-              <>
-                {user.role !== 'admin' && (
-                  <Link
-                    aria-label="Notifications"
-                    onClick={close}
-                    to={'/' + user.role + '/notifications'}
-                  >
-                    <Bell size={19} />
+          {!startup && (
+            <div className="header-actions">
+              {user ? (
+                <>
+                  {user.role !== 'admin' && (
+                    <Link
+                      aria-label="Notifications"
+                      onClick={close}
+                      to={'/' + user.role + '/notifications'}
+                    >
+                      <Bell size={21} />
+                    </Link>
+                  )}
+                  <Button to={dashboard} onClick={close} variant="gold">
+                    Dashboard <External />
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link to="/login" onClick={close}>
+                    Log in
                   </Link>
-                )}
-                <Button to={dashboard} onClick={close} variant="gold">
-                  Dashboard <External />
-                </Button>
-              </>
-            ) : (
-              <>
-                <Link to="/login" onClick={close}>
-                  Log in
-                </Link>
-                <Button to="/register" onClick={close} variant="gold">
-                  Join Now <External />
-                </Button>
-              </>
-            )}
-          </div>
+                  <Button to="/register" onClick={close} variant="gold">
+                    Join Now <External />
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
         </div>
+        {startup && (
+          <div className="header-actions startup-header-actions">
+            {startupInbox}
+            <details className="startup-account" key={pathname}>
+              <summary aria-label={companyName + ' account'}>
+                <span className="startup-avatar">
+                  {company?.logo ? <img src={company.logo} alt="" /> : companyName?.[0]}
+                </span>
+                <span className="startup-account-name">{companyName}</span>
+                <ChevronDown size={16} aria-hidden="true" />
+              </summary>
+              <div className="startup-account-links">
+                <Link to={dashboard} onClick={close}>
+                  Overview
+                </Link>
+                <Link to="/startup/profile" onClick={close}>
+                  Startup Profile
+                </Link>
+                <Link to="/startup/settings" onClick={close}>
+                  Settings
+                </Link>
+              </div>
+            </details>
+          </div>
+        )}
       </div>
     </header>
   );

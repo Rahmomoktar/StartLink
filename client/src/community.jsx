@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { Bell, MessageCircle, X } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -61,13 +62,17 @@ export function Connections({ user }) {
     </>
   );
 }
-export function Notifications({ user }) {
+export function Notifications({ user, popup = false }) {
   const [page, setPage] = useState(1);
   const query = useData(search('/notifications', { page }));
   const action = useAction();
   return (
     <>
-      <Title title="Notifications">{query.data?.unread ?? 0} unread</Title>
+      {popup ? (
+        <p>{query.data?.unread ?? 0} unread</p>
+      ) : (
+        <Title title="Notifications">{query.data?.unread ?? 0} unread</Title>
+      )}
       <Mutate path="/notifications/read-all" method="patch" disabled={!query.data?.unread}>
         Mark All as Read
       </Mutate>
@@ -240,15 +245,20 @@ function Chat({ item, user }) {
     </div>
   );
 }
-export function Messages({ user }) {
+export function Messages({ user, popup = false }) {
   const [params, setParams] = useSearchParams();
+  const [popupConversation, setPopupConversation] = useState(null);
   const [q, setQuery] = useState('');
   const query = useData(search('/conversations', { q }));
-  const active = params.get('conversation');
+  const active = popup ? popupConversation : params.get('conversation');
+  const selectConversation = (id) => {
+    if (popup) setPopupConversation(id);
+    else setParams(id ? { conversation: id } : {});
+  };
   const selected = query.data?.find((item) => item._id === active);
   return (
     <>
-      <Title title="Messages" />
+      {!popup && <Title title="Messages" />}
       <div className={'chat ' + (selected ? 'chat-active' : '')}>
         <aside className="chat-list">
           <label className="field">
@@ -264,7 +274,7 @@ export function Messages({ user }) {
                     type="button"
                     aria-pressed={active === item._id}
                     key={item._id}
-                    onClick={() => setParams({ conversation: item._id })}
+                    onClick={() => selectConversation(item._id)}
                   >
                     {item.other.fullName}
                     {item.unread > 0 && <span className="tag">{item.unread} unread</span>}
@@ -277,7 +287,11 @@ export function Messages({ user }) {
         <div className="chat-content">
           {selected ? (
             <>
-              <Button className="mobile-back" variant="outline" onClick={() => setParams({})}>
+              <Button
+                className="mobile-back"
+                variant="outline"
+                onClick={() => selectConversation(null)}
+              >
                 Back to Conversations
               </Button>
               <Chat key={selected._id} item={selected} user={user} />
@@ -287,6 +301,60 @@ export function Messages({ user }) {
           )}
         </div>
       </div>
+    </>
+  );
+}
+
+export function StartupInbox({ user }) {
+  const dialog = useRef(null);
+  const [panel, setPanel] = useState(null);
+  const alerts = useData('/notifications');
+  const conversations = useData('/conversations');
+  const unreadMessages = conversations.data?.reduce((total, row) => total + row.unread, 0) || 0;
+  const unreadAlerts = alerts.data?.unread || 0;
+  function open(name) {
+    setPanel(name);
+    dialog.current.showModal();
+  }
+  return (
+    <>
+      <button
+        className="startup-inbox-trigger"
+        type="button"
+        aria-label="Messages"
+        aria-haspopup="dialog"
+        onClick={() => open('Messages')}
+      >
+        <MessageCircle size={22} aria-hidden="true" />
+        {unreadMessages > 0 && <span className="startup-inbox-count">{unreadMessages}</span>}
+      </button>
+      <button
+        className="startup-inbox-trigger"
+        type="button"
+        aria-label="Notifications"
+        aria-haspopup="dialog"
+        onClick={() => open('Notifications')}
+      >
+        <Bell size={22} aria-hidden="true" />
+        {unreadAlerts > 0 && <span className="startup-inbox-count">{unreadAlerts}</span>}
+      </button>
+      <dialog
+        className="startup-inbox"
+        aria-labelledby="startup-inbox-title"
+        ref={dialog}
+        onClose={() => setPanel(null)}
+      >
+        <div className="startup-inbox-heading">
+          <h2 id="startup-inbox-title">{panel}</h2>
+          <button type="button" aria-label="Close popup" onClick={() => dialog.current.close()}>
+            <X size={22} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="startup-inbox-body">
+          {panel === 'Messages' && <Messages user={user} popup />}
+          {panel === 'Notifications' && <Notifications user={user} popup />}
+        </div>
+      </dialog>
     </>
   );
 }

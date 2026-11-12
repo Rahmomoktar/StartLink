@@ -1,13 +1,28 @@
-import { ArrowRight, ArrowUpRight, Plus } from 'lucide-react';
+import {
+  ArrowRight,
+  ArrowUpRight,
+  BriefcaseBusiness,
+  Building2,
+  ClipboardList,
+  Handshake,
+  Layers,
+  MessageCircle,
+  Plus,
+  Rocket,
+  Trophy,
+  UsersRound,
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useData } from './api';
 import { Button, date, label, Result } from './ui';
 
-function Panel({ title, to, action = 'View all', children }) {
+function Panel({ title, to, action = 'View all', icon: Icon, children }) {
   return (
     <section className="dashboard-panel">
       <div className="dashboard-panel-heading">
-        <h2>{title}</h2>
+        <h2>
+          {Icon && <Icon size={24} aria-hidden="true" />} {title}
+        </h2>
         <Link to={to}>
           {action} <ArrowRight size={15} aria-hidden="true" />
         </Link>
@@ -17,7 +32,8 @@ function Panel({ title, to, action = 'View all', children }) {
   );
 }
 
-function DashboardList({ query, empty, describe }) {
+function DashboardList({ query, empty, emptyState, describe }) {
+  if (emptyState && query.isSuccess && !(query.data.items ?? query.data).length) return emptyState;
   return (
     <Result query={query} empty={empty}>
       {(data) => (
@@ -43,6 +59,32 @@ function DashboardList({ query, empty, describe }) {
   );
 }
 
+function ListingActions() {
+  return (
+    <div className="actions startup-listing-actions">
+      <Button to="/startup/opportunities/new" variant="gold">
+        <Plus size={18} aria-hidden="true" /> Post a Project
+      </Button>
+      <Button to="/startup/opportunities/new?type=challenge" variant="outline">
+        <Trophy size={18} aria-hidden="true" /> Create a Challenge
+      </Button>
+    </div>
+  );
+}
+
+function StartupEmpty({ icon: _Icon, title, description, children }) {
+  return (
+    <div className="startup-empty">
+      <_Icon size={45} strokeWidth={1.55} aria-hidden="true" />
+      <div>
+        <strong>{title}</strong>
+        <p>{description}</p>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 export function Overview({ user }) {
   const graduate = user.role === 'graduate';
   const root = '/' + user.role;
@@ -52,7 +94,7 @@ export function Overview({ user }) {
   const submissions = useData('/submissions', graduate);
   const connections = useData('/connections', graduate);
   const messages = useData('/conversations');
-  const notifications = useData('/notifications');
+  const notifications = useData('/notifications', graduate);
   const matches = useData(graduate ? '/matches/opportunities' : '/matches/graduates');
   const listings = useData(graduate ? '/matches/startups' : '/opportunities/mine');
   const company = graduate ? null : profile.data?.[0];
@@ -87,10 +129,22 @@ export function Overview({ user }) {
         ['Unread notifications', notifications.data?.unread, notifications, '/notifications'],
       ]
     : [
-        ['Active projects', activity.data?.projects, activity, '/opportunities'],
-        ['Active challenges', activity.data?.challenges, activity, '/opportunities'],
-        ['Applications received', applications.data?.total, applications, '/applications'],
-        ['Completed collaborations', activity.data?.completed, activity, '/applications'],
+        ['Active Projects', activity.data?.projects, activity, '/opportunities', BriefcaseBusiness],
+        ['Active Challenges', activity.data?.challenges, activity, '/opportunities', Trophy],
+        [
+          'Applications Received',
+          applications.data?.total,
+          applications,
+          '/applications',
+          UsersRound,
+        ],
+        [
+          'Completed Collaborations',
+          activity.data?.completed,
+          activity,
+          '/applications',
+          Handshake,
+        ],
       ];
   const recentApplications = (
     <Panel title="Recent applications" to={root + '/applications'}>
@@ -108,33 +162,45 @@ export function Overview({ user }) {
     </Panel>
   );
   return (
-    <div className="dashboard">
+    <div className={'dashboard' + (graduate ? '' : ' startup-dashboard')}>
       <header className="dashboard-heading">
         <div>
-          <h1>{graduate ? 'Career overview' : 'Startup overview'}</h1>
+          <h1>{graduate ? 'Career overview' : 'Startup Overview'}</h1>
           <p>{company?.name || user.fullName}</p>
+          {!graduate && (
+            <p className="startup-dashboard-description">
+              Manage your projects, challenges and find the right talent.
+            </p>
+          )}
         </div>
-        <div className="actions">
-          {graduate ? (
+        {graduate ? (
+          <div className="actions">
             <Button to="/opportunities">
               Browse opportunities <ArrowRight size={16} aria-hidden="true" />
             </Button>
-          ) : (
-            <>
-              <Button to="/startup/opportunities/new">
-                <Plus size={17} aria-hidden="true" /> Post a project
-              </Button>
-              <Button to="/startup/opportunities/new?type=challenge" variant="outline">
-                Create a challenge
-              </Button>
-            </>
-          )}
-        </div>
+          </div>
+        ) : (
+          <>
+            <div className="startup-launch-art" aria-hidden="true">
+              <Rocket size={76} strokeWidth={1.25} />
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+            <ListingActions />
+          </>
+        )}
       </header>
       <div className="dashboard-metrics">
-        {metrics.map(([title, value, query, path]) => (
+        {metrics.map(([title, value, query, path, _Icon]) => (
           <Link key={title} className="dashboard-metric" to={root + path}>
-            <span>{title}</span>
+            {_Icon && (
+              <span className="startup-metric-icon">
+                <_Icon size={25} aria-hidden="true" />
+              </span>
+            )}
+            <span className="dashboard-metric-title">{title}</span>
             <strong>{query.isError ? 'Unavailable' : (value ?? '…')}</strong>
             <ArrowUpRight size={15} aria-hidden="true" />
           </Link>
@@ -146,13 +212,23 @@ export function Overview({ user }) {
             recentApplications
           ) : (
             <Panel
-              title="Projects and challenges"
+              title="Projects and Challenges"
               to={root + '/opportunities'}
-              action="Manage listings"
+              action="Manage Listings"
+              icon={Layers}
             >
               <DashboardList
                 query={listings}
                 empty="Your projects and challenges will appear here."
+                emptyState={
+                  <StartupEmpty
+                    icon={ClipboardList}
+                    title="No projects or challenges yet"
+                    description="Post a project or create a challenge to attract talented graduates."
+                  >
+                    <ListingActions />
+                  </StartupEmpty>
+                }
                 describe={(item) => ({
                   id: item._id,
                   to: root + '/opportunities/' + item._id + '/edit',
@@ -164,13 +240,23 @@ export function Overview({ user }) {
             </Panel>
           )}
           <Panel
-            title={graduate ? 'Recommended opportunities' : 'Recommended graduates'}
+            title={graduate ? 'Recommended opportunities' : 'Recommended Graduates'}
             to={root + '/matches'}
             action="View matches"
+            icon={graduate ? undefined : UsersRound}
           >
             <DashboardList
               query={matches}
               empty="No recommendations yet."
+              emptyState={
+                !graduate && (
+                  <StartupEmpty
+                    icon={UsersRound}
+                    title="No recommendations yet"
+                    description="We'll recommend graduates based on your skills needs and projects."
+                  />
+                )
+              }
               describe={({ item, score }) => ({
                 id: item._id,
                 to: graduate ? '/opportunities/' + item._id : '/talent/' + item.userId?._id,
@@ -208,15 +294,14 @@ export function Overview({ user }) {
                 />
               </Panel>
             </>
-          ) : (
-            recentApplications
-          )}
+          ) : null}
         </div>
         <div className="dashboard-column">
           <Panel
-            title={graduate ? 'Your profile' : 'Company profile'}
+            title={graduate ? 'Your profile' : 'Company Profile'}
             to={root + '/profile/edit'}
             action="Edit"
+            icon={graduate ? undefined : Building2}
           >
             <div className="dashboard-profile">
               <div>
@@ -235,10 +320,23 @@ export function Overview({ user }) {
               {company && <p>Verification status · {label(company.verificationStatus)}</p>}
             </div>
           </Panel>
-          <Panel title="Messages" to={root + '/messages'}>
+          <Panel
+            title="Messages"
+            to={root + '/messages'}
+            icon={graduate ? undefined : MessageCircle}
+          >
             <DashboardList
               query={messages}
               empty="No conversations yet."
+              emptyState={
+                !graduate && (
+                  <StartupEmpty
+                    icon={MessageCircle}
+                    title="No conversations yet"
+                    description="Start a conversation with a graduate or collaborator."
+                  />
+                )
+              }
               describe={(item) => ({
                 id: item._id,
                 to: root + '/messages?conversation=' + item._id,
@@ -248,26 +346,26 @@ export function Overview({ user }) {
               })}
             />
           </Panel>
-          <Panel title="Notifications" to={root + '/notifications'}>
-            <DashboardList
-              query={notifications}
-              empty="No notifications yet."
-              describe={(item) => ({
-                id: item._id,
-                to: root + '/notifications',
-                title: item.title,
-                detail: date(item.createdAt),
-                status: item.readAt ? undefined : 'New',
-              })}
-            />
-          </Panel>
-          <Link
-            className="dashboard-shortcut"
-            to={graduate ? root + '/saved-startups' : root + '/talent'}
-          >
-            {graduate ? 'Saved startups' : 'Find talent'}{' '}
-            <ArrowRight size={16} aria-hidden="true" />
-          </Link>
+          {graduate && (
+            <Panel title="Notifications" to={root + '/notifications'}>
+              <DashboardList
+                query={notifications}
+                empty="No notifications yet."
+                describe={(item) => ({
+                  id: item._id,
+                  to: root + '/notifications',
+                  title: item.title,
+                  detail: date(item.createdAt),
+                  status: item.readAt ? undefined : 'New',
+                })}
+              />
+            </Panel>
+          )}
+          {graduate && (
+            <Link className="dashboard-shortcut" to={root + '/saved-startups'}>
+              Saved startups <ArrowRight size={16} aria-hidden="true" />
+            </Link>
+          )}
         </div>
       </div>
     </div>
