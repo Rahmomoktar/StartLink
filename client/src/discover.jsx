@@ -1,3 +1,5 @@
+import { featuredStartups } from './demo-startups';
+import { demoTalent } from './demo-talent';
 import { useRef, useState } from 'react';
 import {
   ArrowLeft,
@@ -50,11 +52,42 @@ const startupFilters = [
   ],
 ];
 export function TalentShowcase({ user, heading }) {
-  const canBrowse = ['startup', 'admin'].includes(user?.role);
+  const canBrowse = true;
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({});
-  const query = useData(search('/graduates', { ...filters, page }), canBrowse);
-  const options = useData('/graduates/filters', canBrowse);
+  const normalized = (value) => value.toLowerCase();
+  const items = demoTalent.filter((item) => {
+    const all = [
+      item.userId.fullName,
+      item.headline,
+      item.bio,
+      item.location,
+      ...item.skills,
+      ...item.education,
+    ].join(' ');
+    return (
+      (!filters.q || normalized(all).includes(normalized(filters.q))) &&
+      (!filters.skills || item.skills.includes(filters.skills)) &&
+      (!filters.study || item.education.some((entry) => entry.includes(filters.study))) &&
+      (!filters.location || item.location === filters.location)
+    );
+  });
+  if (filters.sort === 'name')
+    items.sort((a, b) => a.userId.fullName.localeCompare(b.userId.fullName));
+  const query = {
+    isSuccess: true,
+    isPending: false,
+    isError: false,
+    data: { items, total: items.length, pages: 1, page: 1 },
+  };
+  const sorted = (values) => [...new Set(values)].sort((a, b) => a.localeCompare(b));
+  const options = {
+    data: {
+      skills: sorted(demoTalent.flatMap((item) => item.skills)),
+      locations: sorted(demoTalent.map((item) => item.location)),
+      universities: sorted(demoTalent.map((item) => item.education[0].split(' · ')[1])),
+    },
+  };
   const changeFilter = ({ target: { name, value } }) => {
     setFilters((current) => ({ ...current, [name]: value }));
     setPage(1);
@@ -128,7 +161,7 @@ export function TalentShowcase({ user, heading }) {
                       item={item}
                       showcase
                       action={
-                        user.role === 'startup' ? (
+                        !item.userId.sample && user?.role === 'startup' ? (
                           <TalentInvite graduateId={item.userId._id} name={item.userId.fullName} />
                         ) : undefined
                       }
@@ -422,8 +455,14 @@ function ConnectForm({ startupId, graduateId }) {
   );
 }
 function StartupDetailContent({ item, user }) {
-  const opportunities = useData('/startups/' + item._id + '/opportunities');
-  const saved = useData('/startups/saved', user?.role === 'graduate');
+  const liveOpportunities = useData(
+    '/startups/' + item._id + '/opportunities',
+    !item.staticProfile,
+  );
+  const opportunities = item.staticProfile
+    ? { isSuccess: true, data: { items: [] } }
+    : liveOpportunities;
+  const saved = useData('/startups/saved', !item.staticProfile && user?.role === 'graduate');
   return (
     <>
       <header className="startup-profile-hero">
@@ -456,7 +495,7 @@ function StartupDetailContent({ item, user }) {
               <Tags items={item.requiredSkills} />
             </div>
           )}
-          <ProfileVideo kind="startup" subject={item._id} user={user} />
+          {!item.staticProfile && <ProfileVideo kind="startup" subject={item._id} user={user} />}
         </article>
         <aside className="card startup-company-details">
           <h2>
@@ -480,7 +519,7 @@ function StartupDetailContent({ item, user }) {
               Company Website <External />
             </a>
           )}
-          {user && (
+          {user && !item.staticProfile && (
             <div className="actions">
               {user.role === 'graduate' && (
                 <>
@@ -530,7 +569,9 @@ function StartupDetailContent({ item, user }) {
 }
 export function StartupDetail({ user }) {
   const { slug } = useParams();
-  const query = useData('/startups/' + encodeURIComponent(slug));
+  const demo = featuredStartups.find((item) => item.slug === slug);
+  const live = useData('/startups/' + encodeURIComponent(slug), !demo);
+  const query = demo ? { isSuccess: true, isPending: false, isError: false, data: demo } : live;
   return (
     <section className="shell startup-profile-page">
       <Link className="startup-directory-back" to="/discover-startups">
@@ -542,10 +583,12 @@ export function StartupDetail({ user }) {
 }
 export function TalentDetail({ user }) {
   const { id } = useParams();
-  const query = useData('/graduates/' + id, ['startup', 'admin'].includes(user?.role));
+  const demo = demoTalent.find((item) => item.userId._id === id);
+  const live = useData('/graduates/' + id, !demo && ['startup', 'admin'].includes(user?.role));
+  const query = demo ? { isSuccess: true, isPending: false, isError: false, data: demo } : live;
   const companies = useData('/startups/mine', user?.role === 'startup');
   const [company, setCompany] = useState('');
-  if (!['startup', 'admin'].includes(user?.role))
+  if (!demo && !['startup', 'admin'].includes(user?.role))
     return (
       <section className="shell section">
         <Title title="Talent Showcase">
@@ -555,36 +598,47 @@ export function TalentDetail({ user }) {
       </section>
     );
   return (
-    <section className="shell section">
+    <section className="shell section talent-detail-page">
       <Result query={query}>
         {(item) => (
-          <article className="card detail">
-            <TalentPortrait user={item.userId} />
-            <Title title={item.userId.fullName}>{item.headline}</Title>
-            <p>{item.bio}</p>
-            <p>{[item.location, item.availability, item.workMode].filter(Boolean).join(' · ')}</p>
-            <Tags items={item.skills} />
-            <p>{item.education?.join(' · ')}</p>
-            <Tags items={item.interests} />
-            <ProfileVideo kind="graduate" subject={id} user={user} />
-            <div className="actions">
-              {item.github && (
-                <a href={item.github} target="_blank" rel="noreferrer">
-                  GitHub <External />
-                </a>
-              )}
-              {item.linkedin && (
-                <a href={item.linkedin} target="_blank" rel="noreferrer">
-                  LinkedIn <External />
-                </a>
-              )}
-            </div>
+          <article className="talent-profile-page">
+            <header className="talent-profile-header">
+              <TalentPortrait user={item.userId} />
+              <div className="talent-profile-copy">
+                <h1>{item.userId.fullName}</h1>
+                <p className="talent-profile-headline">{item.headline}</p>
+                <p className="talent-profile-bio">{item.bio}</p>
+                <p className="talent-profile-meta">
+                  {[item.location, item.availability, item.workMode].filter(Boolean).join(' · ')}
+                </p>
+                <div className="talent-profile-tags">
+                  <Tags items={item.skills} />
+                </div>
+                <p className="talent-profile-education">{item.education?.join(' · ')}</p>
+                <div className="talent-profile-interests">
+                  <Tags items={item.interests} />
+                </div>
+                <div className="actions talent-profile-links">
+                  {item.github && (
+                    <a href={item.github} target="_blank" rel="noreferrer">
+                      GitHub <External />
+                    </a>
+                  )}
+                  {item.linkedin && (
+                    <a href={item.linkedin} target="_blank" rel="noreferrer">
+                      LinkedIn <External />
+                    </a>
+                  )}
+                </div>
+              </div>
+            </header>
+            {!demo && <ProfileVideo kind="graduate" subject={id} user={user} />}
             {item.portfolioProjects?.length > 0 && (
-              <>
-                <h2>Portfolio</h2>
+              <section className="talent-profile-portfolio" aria-labelledby="graduate-portfolio">
+                <h2 id="graduate-portfolio">Portfolio</h2>
                 <div className="grid two">
                   {item.portfolioProjects.map((project) => (
-                    <article className="card" key={project._id}>
+                    <article className="talent-profile-project" key={project._id}>
                       <h3>{project.title}</h3>
                       <p>{project.description}</p>
                       <Tags items={project.technologies} />
@@ -611,9 +665,9 @@ export function TalentDetail({ user }) {
                     </article>
                   ))}
                 </div>
-              </>
+              </section>
             )}
-            {user.role === 'startup' && (
+            {!demo && user?.role === 'startup' && (
               <div className="field">
                 <label htmlFor="invite-company">Invite from startup</label>
                 <select

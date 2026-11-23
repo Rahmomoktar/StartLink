@@ -1128,6 +1128,126 @@ input[aria-invalid='true'] {
 .detail {
   margin-top: 1rem;
 }
+.talent-detail-page {
+  padding-top: clamp(1rem, 2vw, 2rem);
+}
+.talent-profile-page {
+  width: min(100%, 1280px);
+  display: grid;
+  gap: 1.5rem;
+}
+.talent-profile-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.35rem;
+}
+.talent-profile-header .talent-portrait {
+  flex: none;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 3px solid rgba(20, 36, 60, 0.08);
+  background: #dfeaf8;
+  color: var(--color-navy);
+}
+.talent-profile-copy {
+  min-width: 0;
+  flex: 1;
+}
+.talent-profile-copy h1 {
+  margin: 0;
+  font-size: clamp(2.7rem, 5vw, 5rem);
+  line-height: 0.95;
+  letter-spacing: -0.065em;
+  color: var(--color-navy);
+}
+.talent-profile-headline {
+  margin-top: 0.8rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+.talent-profile-bio {
+  margin-top: 0.5rem;
+  max-width: 70ch;
+  font-size: 1.04rem;
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+.talent-profile-meta,
+.talent-profile-education {
+  margin-top: 0.4rem;
+  font-size: 1.05rem;
+  color: #465b7a;
+}
+.talent-profile-tags,
+.talent-profile-interests {
+  margin-top: 0.6rem;
+}
+.talent-profile-tags .tags,
+.talent-profile-interests .tags {
+  gap: 0.38rem;
+}
+.talent-profile-tags .tags span,
+.talent-profile-interests .tags span {
+  background: #eaf0f7;
+  color: #314a6a;
+  border-radius: 6px;
+  padding: 0.35rem 0.56rem;
+}
+.talent-profile-links {
+  margin-top: 0.9rem;
+}
+.talent-profile-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--gold-text);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.talent-profile-portfolio {
+  display: grid;
+  gap: 0.9rem;
+  padding-top: 0.5rem;
+}
+.talent-profile-portfolio h2 {
+  margin: 0;
+  font-size: clamp(2.3rem, 4vw, 3rem);
+  color: var(--color-navy);
+}
+.talent-profile-project {
+  display: grid;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 1.1rem 1.2rem;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+}
+.talent-profile-project h3 {
+  margin: 0;
+  font-size: clamp(1.35rem, 2.2vw, 2rem);
+  color: var(--color-navy);
+}
+.talent-profile-project p {
+  margin: 0;
+}
+.talent-profile-project img {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--color-line);
+}
+.talent-profile-project .actions a {
+  color: var(--gold-text);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .detail-grid {
   display: grid;
   grid-template-columns: 1.3fr 1fr;
@@ -1137,7 +1257,23 @@ input[aria-invalid='true'] {
 .detail .page-title {
   margin: 0;
 }
-.banner {
+
+@media (max-width: 760px) {
+  .talent-profile-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .talent-profile-header .talent-portrait {
+    width: 72px;
+    height: 72px;
+  }
+  .talent-profile-copy h1 {
+    font-size: clamp(2.2rem, 12vw, 3.5rem);
+  }
+  .talent-profile-portfolio h2 {
+    font-size: clamp(1.8rem, 9vw, 2.4rem);
+  }
+}.banner {
   width: 100%;
   height: clamp(95px, 22vw, 240px);
   object-fit: cover;

@@ -1,3 +1,4 @@
+import { featuredStartups } from './demo-startups';
 import { useState } from 'react';
 import { motion as Motion, useReducedMotion } from 'framer-motion';
 import {
@@ -17,7 +18,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { search, useData } from './api';
-import { Follow, TalentShowcase } from './discover';
+import { TalentShowcase } from './discover';
 import { Button, External, Forward, OpportunityCard, Result, StartupCard, Title } from './ui';
 import howHero from './assets/how-it-works-hero.png';
 import startlinkLogo from './assets/startlink-logo.png';
@@ -290,8 +291,6 @@ export function How() {
   );
 }
 export function Home({ user }) {
-  const startups = useData('/startups');
-  const saved = useData('/startups/saved', user?.role === 'graduate');
   const [type, setType] = useState('project');
   const opportunities = useData(search('/opportunities', { type }));
   return (
@@ -362,26 +361,11 @@ export function Home({ user }) {
               View All Startups <External />
             </Button>
           </div>
-          <Result
-            query={startups}
-            empty="Verified startups will appear here as they join STARTLINK."
-          >
-            {(data) => (
-              <div className="grid three">
-                {data.items.slice(0, 3).map((item) => (
-                  <StartupCard
-                    key={item._id}
-                    item={item}
-                    action={
-                      user?.role === 'graduate' ? (
-                        <Follow item={item} saved={saved.data} />
-                      ) : undefined
-                    }
-                  />
-                ))}
-              </div>
-            )}
-          </Result>
+          <div className="grid three">
+            {featuredStartups.map((item) => (
+              <StartupCard key={item._id} item={item} />
+            ))}
+          </div>
         </div>
       </section>
       <Steps />
